@@ -1399,8 +1399,11 @@
               <div class="form-section no-top-line">
                 <h3 class="form-section-title">コンテナ情報</h3>
                 <div class="business-form-grid plain-form-grid">
-                  <el-form-item label="品名" class="full-row item-name-left">
+                  <el-form-item label="品名" class="item-name-left">
                     <el-input v-model="form.itemName"></el-input>
+                  </el-form-item>
+                  <el-form-item label="商品名">
+                    <el-input v-model="form.productName"></el-input>
                   </el-form-item>
                 </div>
 
@@ -1588,6 +1591,7 @@
           customsBrokerName: "東京通関株式会社",
           customsBrokerSub: "新木場営業所",
           itemName: "化学原料",
+          productName: "",
         });
         const ocrResult = Vue.reactive({
           containerNo: "",
