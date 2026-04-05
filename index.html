@@ -765,7 +765,7 @@
     .billing-form-grid {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 4px 14px;
+      gap: 4px 12px;
       padding: 12px 14px;
       border-radius: 14px;
       background: #f7fafe;
@@ -794,6 +794,40 @@
       gap: 8px;
       align-items: center;
       width: 100%;
+    }
+
+    .settlement-row {
+      display: grid;
+      grid-template-columns: auto 240px auto auto 140px;
+      gap: 12px;
+      align-items: center;
+      width: 100%;
+    }
+
+    .settlement-inline-label {
+      display: inline-flex;
+      align-items: center;
+      justify-content: flex-end;
+      line-height: 32px;
+      justify-self: end;
+      white-space: nowrap;
+    }
+
+    .detail-case-picker {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .income-radio-row {
+      display: flex;
+      align-items: center;
+      min-height: 32px;
+    }
+
+    .case-select-table .el-button {
+      min-width: 72px;
     }
 
     .billing-summary-grid {
@@ -2426,14 +2460,28 @@
                   <el-form-item label="請求書発行日">
                     <el-date-picker v-model="form.issueDate" type="date" format="YYYY/MM/DD" value-format="YYYY/MM/DD" style="width:100%;"></el-date-picker>
                   </el-form-item>
+                  <el-form-item label="入金日付">
+                    <el-date-picker v-model="form.paymentDate" type="date" format="YYYY/MM/DD" value-format="YYYY/MM/DD" style="width:100%;"></el-date-picker>
+                  </el-form-item>
                   <el-form-item label="精算通貨" class="full-row">
-                    <div class="currency-pair">
-                      <el-select v-model="form.settlementCurrency">
-                        <el-option label="JPY" value="JPY"></el-option>
-                        <el-option label="USD" value="USD"></el-option>
-                        <el-option label="RMB" value="RMB"></el-option>
-                      </el-select>
-                      <el-input v-model="form.settlementRate"></el-input>
+                    <div class="settlement-row">
+                      <div class="currency-pair">
+                        <el-select v-model="form.settlementCurrency">
+                          <el-option label="JPY" value="JPY"></el-option>
+                          <el-option label="USD" value="USD"></el-option>
+                          <el-option label="RMB" value="RMB"></el-option>
+                        </el-select>
+                        <el-input v-model="form.settlementRate"></el-input>
+                      </div>
+                      <span class="el-form-item__label settlement-inline-label">入金有無</span>
+                      <div class="income-radio-row">
+                        <el-radio-group v-model="form.paymentAvailable">
+                          <el-radio label="有">有</el-radio>
+                          <el-radio label="無">無</el-radio>
+                        </el-radio-group>
+                      </div>
+                      <span class="el-form-item__label settlement-inline-label">過不足金額</span>
+                      <el-input v-model="form.balanceAdjustment"></el-input>
                     </div>
                   </el-form-item>
                   <el-form-item label="建值通貨" class="full-row">
@@ -2476,6 +2524,17 @@
                   </el-table-column>
                   <el-table-column label="" width="56">
                     <template #default="scope"><el-checkbox v-model="scope.row.checked"></el-checkbox></template>
+                  </el-table-column>
+                  <el-table-column prop="caseNo" label="案件番号" width="230">
+                    <template #default="scope">
+                      <div class="detail-case-picker">
+                        <el-input v-model="scope.row.caseNo"></el-input>
+                        <el-button circle plain :icon="Search" @click="openCaseDialog(scope.$index)"></el-button>
+                      </div>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="caseName" label="案件名" min-width="180">
+                    <template #default="scope"><el-input v-model="scope.row.caseName"></el-input></template>
                   </el-table-column>
                   <el-table-column prop="item" label="項目" min-width="120"><template #default="scope"><el-input v-model="scope.row.item"></el-input></template></el-table-column>
                   <el-table-column prop="itemJa" label="請求項目(日本語)" min-width="160"><template #default="scope"><el-input v-model="scope.row.itemJa"></el-input></template></el-table-column>
@@ -2548,6 +2607,21 @@
               <el-button type="primary" @click="printBill">出力</el-button>
             </template>
           </el-dialog>
+
+          <el-dialog v-model="caseDialogVisible" title="案件選択" width="720px">
+            <el-table :data="caseCandidates" border class="case-select-table" style="width:100%">
+              <el-table-column label="No." width="70">
+                <template #default="scope">{{ scope.$index + 1 }}</template>
+              </el-table-column>
+              <el-table-column prop="caseNo" label="案件番号" min-width="180"></el-table-column>
+              <el-table-column prop="caseName" label="案件名" min-width="240"></el-table-column>
+              <el-table-column label="操作" width="100" fixed="right">
+                <template #default="scope">
+                  <el-button type="primary" plain @click="selectDetailCase(scope.row)">選択</el-button>
+                </template>
+              </el-table-column>
+            </el-table>
+          </el-dialog>
         </div>
       `,
       setup() {
@@ -2560,6 +2634,7 @@
           criterion: source.criterion,
           accountingDate: source.accountingDate,
           issueDate: source.issueDate,
+          paymentDate: source.plannedDate,
           revisedPaymentDate: source.revisedPaymentDate,
           settlementCurrency: source.settlementCurrency,
           settlementRate: "1.0000",
@@ -2567,10 +2642,24 @@
           rateUsd: "155.2500",
           rateRmbCurrency: "",
           rateRmb: "0.0000",
-          taxRate: String(source.taxRate)
+          taxRate: String(source.taxRate),
+          paymentAvailable: "無",
+          balanceAdjustment: "0"
         });
+        const caseNameMap = {
+          B101ES26000001: "WAN HAI KOLKATA 3月案件",
+          B101ES26000002: "WAN HAI KOLKATA 追加案件",
+          B101ES26000003: "WAN HAI KOLKATA 継続案件"
+        };
+        const caseCandidates = caseRows.map((item, index) => ({
+          ...item,
+          caseName: caseNameMap[item.caseNo] || ("案件" + String(index + 1).padStart(2, "0"))
+        }));
+        const defaultDetailCase = caseCandidates[0] || { caseNo: "", caseName: "" };
         const makeDetailRow = (row = {}) => ({
           checked: false,
+          caseNo: row.caseNo || defaultDetailCase.caseNo,
+          caseName: row.caseName || caseNameMap[row.caseNo] || defaultDetailCase.caseName,
           item: row.item || "",
           itemJa: row.itemJa || "",
           taxType: row.taxType || "1",
@@ -2582,11 +2671,24 @@
         const detailRows = Vue.ref(source.details.map(item => makeDetailRow(item)));
         const templateVisible = Vue.ref(false);
         const selectedTemplates = Vue.ref(["請求書1"]);
+        const caseDialogVisible = Vue.ref(false);
+        const caseDialogTargetIndex = Vue.ref(-1);
         const totalSettlement = Vue.computed(() => detailRows.value.reduce((sum, row) => sum + calcBillingSettlement(row), 0));
         const totalTaxable = Vue.computed(() => detailRows.value.filter(row => row.taxType === "1").reduce((sum, row) => sum + calcBillingSettlement(row), 0));
         const totalExempt = Vue.computed(() => detailRows.value.filter(row => row.taxType === "2").reduce((sum, row) => sum + calcBillingSettlement(row), 0));
         const addDetailRow = () => detailRows.value.push(makeDetailRow());
         const removeDetailRow = (index) => detailRows.value.splice(index, 1);
+        const openCaseDialog = (index) => {
+          caseDialogTargetIndex.value = index;
+          caseDialogVisible.value = true;
+        };
+        const selectDetailCase = (selected) => {
+          const row = detailRows.value[caseDialogTargetIndex.value];
+          if (!row) return;
+          row.caseNo = selected.caseNo;
+          row.caseName = selected.caseName;
+          caseDialogVisible.value = false;
+        };
         const saveBill = () => {
           ElementPlus.ElMessage.success("保存成功");
           router.push("/billing");
@@ -2601,14 +2703,19 @@
           detailRows,
           templateVisible,
           selectedTemplates,
+          caseDialogVisible,
+          caseCandidates,
           totalSettlement,
           totalTaxable,
           totalExempt,
           addDetailRow,
           removeDetailRow,
+          openCaseDialog,
+          selectDetailCase,
           saveBill,
           cancelEdit,
           printBill,
+          Search,
           Delete,
           calcBillingRowAmount,
           calcBillingSettlement,
