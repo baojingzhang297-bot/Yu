@@ -333,6 +333,7 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
+      flex-wrap: wrap;
       gap: 12px;
       margin-bottom: 10px;
     }
@@ -340,6 +341,11 @@
     .table-note {
       color: var(--muted);
       font-size: 13px;
+    }
+
+    .case-toolbar .table-note {
+      margin-left: auto;
+      text-align: right;
     }
 
     .case-table .cell {
@@ -486,6 +492,10 @@
     .section-toggle-btn {
       color: var(--brand);
       padding: 4px 6px;
+    }
+
+    .readonly-block {
+      pointer-events: none;
     }
 
     .business-form-grid {
@@ -696,11 +706,15 @@
     .finance-form-grid {
       display: grid;
       grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 8px 20px;
+      gap: 6px 20px;
       padding: 16px;
       border-radius: 14px;
       background: #f7fafe;
       border: 1px solid #e6edf5;
+    }
+
+    .finance-form-grid .el-form-item {
+      margin-bottom: 14px;
     }
 
     .finance-form-grid .full-row {
@@ -764,16 +778,16 @@
 
     .billing-form-grid {
       display: grid;
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 4px 12px;
-      padding: 12px 14px;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 6px 20px;
+      padding: 16px;
       border-radius: 14px;
       background: #f7fafe;
       border: 1px solid #e6edf5;
     }
 
     .billing-form-grid .el-form-item {
-      margin-bottom: 10px;
+      margin-bottom: 14px;
     }
 
     .billing-form-grid .full-row {
@@ -830,6 +844,32 @@
       min-width: 72px;
     }
 
+    .compact-summary-row {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .compact-summary-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      min-width: 0;
+    }
+
+    .compact-summary-label {
+      flex: 0 0 auto;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .compact-summary-item .el-input {
+      flex: 1 1 auto;
+    }
+
     .billing-summary-grid {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -880,8 +920,21 @@
     .bottom-actions {
       display: flex;
       justify-content: center;
+      flex-wrap: wrap;
       gap: 16px;
       margin-top: 28px;
+    }
+
+    .search-actions .el-button,
+    .case-toolbar .el-button,
+    .finance-tools .el-button,
+    .bottom-actions .el-button,
+    .new-case-actions .el-button {
+      min-width: 104px;
+    }
+
+    .el-dialog__footer .el-button {
+      min-width: 104px;
     }
 
     .case-table .el-table__cell {
@@ -894,6 +947,12 @@
 
     .case-table .el-table__body td {
       font-size: 12px;
+    }
+
+    .table-pagination {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 14px;
     }
 
     @media (max-width: 900px) {
@@ -984,9 +1043,10 @@
     const caseRows = [
       {
         no: 1,
-        caseNo: "B101ES26000001",
+        caseNo: "R20260301001",
         etd: "2026/03/08",
         eta: "2026/03/15",
+        docCutDate: "2026/03/05",
         shippingCompany: "WAN\nHAI LINES",
         destination: "KOLKATA, INDIA",
         workplace: "岩并化成",
@@ -996,39 +1056,44 @@
         invoiceIssued: "○",
         paymentStatus: "○",
         surrenderStatus: "○",
-        containerCount: 10
+        containerCount: 10,
+        caseStatus: "進行中"
       },
       {
         no: 2,
-        caseNo: "B101ES26000002",
+        caseNo: "R20260315002",
         etd: "2026/03/08",
         eta: "2026/03/15",
+        docCutDate: "2026/03/06",
         shippingCompany: "WAN\nHAI LINES",
         destination: "KOLKATA, INDIA",
-        workplace: "岩并化成",
+        workplace: "岩并化成、横浜CY",
         bookingNo: "008GX09337",
         blNo: "008GX09337",
         containerNo: "WHSU6329392",
         invoiceIssued: "-",
         paymentStatus: "△",
         surrenderStatus: "○",
-        containerCount: 20
+        containerCount: 20,
+        caseStatus: "進行中"
       },
       {
         no: 3,
-        caseNo: "B101ES26000003",
+        caseNo: "R20260320003",
         etd: "2026/03/08",
         eta: "2026/03/15",
+        docCutDate: "2026/03/07",
         shippingCompany: "WAN\nHAI LINES",
         destination: "KOLKATA, INDIA",
-        workplace: "岩并化成",
+        workplace: "岩并化成、東京物流センター、仙台倉庫",
         bookingNo: "008GX09336",
         blNo: "008GX09336",
         containerNo: "WHSU6329393",
         invoiceIssued: "○",
         paymentStatus: "-",
         surrenderStatus: "-",
-        containerCount: 30
+        containerCount: 30,
+        caseStatus: "終了"
       }
     ];
 
@@ -1036,6 +1101,29 @@
       if (value === "○") return "symbol-pill symbol-ok";
       if (value === "△") return "symbol-pill symbol-partial";
       return "symbol-pill symbol-none";
+    };
+
+    const useTablePagination = (sourceRows) => {
+      const currentPage = Vue.ref(1);
+      const pageSize = Vue.ref(10);
+      const total = Vue.computed(() => sourceRows.value.length);
+      const pagedRows = Vue.computed(() => {
+        const start = (currentPage.value - 1) * pageSize.value;
+        return sourceRows.value.slice(start, start + pageSize.value);
+      });
+      const ensureCurrentPage = () => {
+        const maxPage = Math.max(1, Math.ceil(total.value / pageSize.value));
+        if (currentPage.value > maxPage) currentPage.value = maxPage;
+      };
+      const handleSizeChange = (size) => {
+        pageSize.value = size;
+        currentPage.value = 1;
+      };
+      const handleCurrentChange = (page) => {
+        currentPage.value = page;
+      };
+      Vue.watch(() => total.value, ensureCurrentPage);
+      return { currentPage, pageSize, total, pagedRows, handleSizeChange, handleCurrentChange };
     };
 
     const CaseListPage = {
@@ -1058,25 +1146,22 @@
             <div class="case-search-grid" :class="{ compact: collapsed }">
               <div class="search-field">
                 <label class="search-label">案件番号</label>
-                <el-input v-model="filters.caseNo" class="compact-input" placeholder="输入案件番号"></el-input>
+                <el-input v-model="filters.caseNo" class="compact-input" placeholder="例: R20260416001"></el-input>
               </div>
 
               <div class="search-field">
                 <label class="search-label">ETD</label>
-                <div class="compact-date-range">
-                  <el-date-picker v-model="filters.etdFrom" type="date" placeholder="From" format="YYYY/MM/DD" value-format="YYYY/MM/DD"></el-date-picker>
-                  <span class="sep">〜</span>
-                  <el-date-picker v-model="filters.etdTo" type="date" placeholder="To" format="YYYY/MM/DD" value-format="YYYY/MM/DD"></el-date-picker>
-                </div>
+                <el-date-picker v-model="filters.etd" type="date" placeholder="日付選択" format="YYYY/MM/DD" value-format="YYYY/MM/DD" class="compact-input"></el-date-picker>
               </div>
 
               <div class="search-field">
                 <label class="search-label">ETA</label>
-                <div class="compact-date-range">
-                  <el-date-picker v-model="filters.etaFrom" type="date" placeholder="From" format="YYYY/MM/DD" value-format="YYYY/MM/DD"></el-date-picker>
-                  <span class="sep">〜</span>
-                  <el-date-picker v-model="filters.etaTo" type="date" placeholder="To" format="YYYY/MM/DD" value-format="YYYY/MM/DD"></el-date-picker>
-                </div>
+                <el-date-picker v-model="filters.eta" type="date" placeholder="日付選択" format="YYYY/MM/DD" value-format="YYYY/MM/DD" class="compact-input"></el-date-picker>
+              </div>
+
+              <div class="search-field">
+                <label class="search-label">書類CUT日</label>
+                <el-date-picker v-model="filters.docCutDate" type="date" placeholder="日付選択" format="YYYY/MM/DD" value-format="YYYY/MM/DD" class="compact-input"></el-date-picker>
               </div>
 
               <div class="search-field">
@@ -1095,6 +1180,16 @@
               <div class="search-field">
                 <label class="search-label">作業場所</label>
                 <el-input v-model="filters.workplace" class="compact-input" placeholder="模糊查询"></el-input>
+              </div>
+
+              <div class="search-field">
+                <label class="search-label">Consignee</label>
+                <el-input v-model="filters.consignee" class="compact-input" placeholder="模糊查询"></el-input>
+              </div>
+
+              <div class="search-field">
+                <label class="search-label">作業日時</label>
+                <el-date-picker v-model="filters.workDateTime" type="date" placeholder="日付選択" format="YYYY/MM/DD" value-format="YYYY/MM/DD" class="compact-input"></el-date-picker>
               </div>
 
               <div class="search-field">
@@ -1122,10 +1217,10 @@
 
               <div class="search-field">
                 <label class="search-label">サレンダー有無</label>
-                <div class="check-row">
-                  <el-checkbox v-model="filters.surrenderDone">サレンダー済</el-checkbox>
-                  <el-checkbox v-model="filters.surrenderUndone">未</el-checkbox>
-                </div>
+                <el-select v-model="filters.surrenderStatus" class="compact-input">
+                  <el-option label="有" value="有"></el-option>
+                  <el-option label="無" value="無"></el-option>
+                </el-select>
               </div>
 
               <div class="search-field">
@@ -1154,11 +1249,20 @@
 
           <div class="case-toolbar">
             <el-button type="primary" :icon="Plus" @click="goNewCase">新規</el-button>
+            <el-button type="primary" plain :icon="Document" :disabled="!selectedCaseNo" @click="goCustomsCreate">通関書類作成</el-button>
             <div class="table-note">点击「変更」或「案件新規」将跳转到案件录入页面。</div>
           </div>
 
-          <el-table :data="rows" stripe border class="case-table" style="width: 100%">
+          <el-table :data="pagedRows" stripe border class="case-table" style="width: 100%">
             <el-table-column prop="no" label="NO" width="58" fixed="left"></el-table-column>
+            <el-table-column label="" width="58" fixed="left" align="center">
+              <template #default="scope">
+                <el-checkbox
+                  :model-value="selectedCaseNo === scope.row.caseNo"
+                  @change="toggleSelectedCase(scope.row, $event)"
+                ></el-checkbox>
+              </template>
+            </el-table-column>
             <el-table-column label="操作" width="84" fixed="left">
               <template #default="scope">
                 <div class="operation-links">
@@ -1183,7 +1287,6 @@
             <el-table-column prop="workplace" label="作業場所" width="98"></el-table-column>
             <el-table-column prop="bookingNo" label="Booking No." width="122"></el-table-column>
             <el-table-column prop="blNo" label="B/L No." width="122"></el-table-column>
-            <el-table-column prop="containerNo" label="コンテナ番号" width="132"></el-table-column>
             <el-table-column label="請求書発行" width="92">
               <template #default="scope">
                 <span :class="getSymbolClass(scope.row.invoiceIssued)">{{ scope.row.invoiceIssued }}</span>
@@ -1199,22 +1302,36 @@
                 <span :class="getSymbolClass(scope.row.surrenderStatus)">{{ scope.row.surrenderStatus }}</span>
               </template>
             </el-table-column>
-            <el-table-column prop="containerCount" label="コンテナ数" width="88"></el-table-column>
           </el-table>
+
+          <div class="table-pagination">
+            <el-pagination
+              :current-page="currentPage"
+              :page-size="pageSize"
+              :page-sizes="[10, 20, 50]"
+              :total="total"
+              layout="total, sizes, prev, pager, next"
+              background
+              @size-change="handleSizeChange"
+              @current-change="handleCurrentChange"
+            />
+          </div>
         </div>
       `,
       setup() {
         const router = VueRouter.useRouter();
         const collapsed = Vue.ref(true);
+        const selectedCaseNo = Vue.ref("");
         const filters = Vue.reactive({
           caseNo: "",
-          etdFrom: "",
-          etdTo: "",
-          etaFrom: "",
-          etaTo: "",
+          etd: "",
+          eta: "",
+          docCutDate: "",
           shippingCode: "WHL",
           destination: "",
           workplace: "",
+          consignee: "",
+          workDateTime: "",
           bookingNo: "",
           blNo: "",
           containerNo: "",
@@ -1225,8 +1342,7 @@
           paymentDone: true,
           paymentUndone: false,
           paymentPartial: true,
-          surrenderDone: true,
-          surrenderUndone: false
+          surrenderStatus: "有"
         });
 
         const shippingMap = {
@@ -1237,13 +1353,44 @@
 
         const shippingName = Vue.computed(() => shippingMap[(filters.shippingCode || "").trim().toUpperCase()] || "");
         const rows = Vue.ref(caseRows);
+        const pagination = useTablePagination(rows);
         const goNewCase = () => router.push("/cases/new");
+        const goCustomsCreate = () => {
+          if (!selectedCaseNo.value) {
+            ElementPlus.ElMessage.warning("案件を1件選択してください");
+            return;
+          }
+          router.push({ path: "/customs/create", query: { caseNo: selectedCaseNo.value, from: "/cases/list" } });
+        };
         const goEdit = (row) => router.push({ path: "/cases/new", query: { mode: "edit", caseNo: row.caseNo } });
-        const copyCase = (row) => ElementPlus.ElMessage.success("已复制案件：" + row.caseNo);
+        const copyCase = (row) => router.push({ path: "/cases/new", query: { mode: "copy", caseNo: row.caseNo } });
+        const toggleSelectedCase = (row, checked) => {
+          selectedCaseNo.value = checked ? row.caseNo : "";
+        };
         const viewCase = (row) => ElementPlus.ElMessage.info("照会案件：" + row.caseNo);
         const removeCase = (row) => ElementPlus.ElMessage.warning("删除为演示动作，未执行：" + row.caseNo);
 
-        return { rows, filters, shippingName, Search, Plus, Expand, Fold, goNewCase, goEdit, copyCase, viewCase, removeCase, getSymbolClass, collapsed };
+        return {
+          rows,
+          ...pagination,
+          filters,
+          shippingName,
+          selectedCaseNo,
+          Search,
+          Plus,
+          Document,
+          Expand,
+          Fold,
+          goNewCase,
+          goCustomsCreate,
+          goEdit,
+          copyCase,
+          toggleSelectedCase,
+          viewCase,
+          removeCase,
+          getSymbolClass,
+          collapsed
+        };
       }
     };
 
@@ -1256,8 +1403,8 @@
                 <h2>案件新規</h2>
                 <p>案件基本信息和容器明细录入页面。当前为纯前端 Mock 演示。</p>
               </div>
-              <el-tag :type="mode === 'edit' ? 'warning' : 'success'">
-                {{ mode === 'edit' ? '変更モード' : '新規作成モード' }}
+              <el-tag :type="mode === 'edit' ? 'warning' : (mode === 'copy' ? 'info' : 'success')">
+                {{ mode === 'edit' ? '変更モード' : (mode === 'copy' ? 'コピー作成モード' : '新規作成モード') }}
               </el-tag>
             </div>
 
@@ -1273,13 +1420,13 @@
                   <el-form-item label="案件番号" prop="caseNo">
                     <el-input v-model="form.caseNo"></el-input>
                   </el-form-item>
+                  <el-form-item label="見積番号">
+                    <el-input v-model="form.quoteNo"></el-input>
+                  </el-form-item>
                   <el-form-item label="案件名" prop="caseName">
                     <el-input v-model="form.caseName"></el-input>
                   </el-form-item>
 
-                  <el-form-item label="取引先番号">
-                    <el-input v-model="form.clientNo"></el-input>
-                  </el-form-item>
                   <el-form-item label="取引先名">
                     <el-input v-model="form.clientName"></el-input>
                   </el-form-item>
@@ -1287,8 +1434,20 @@
                   <el-form-item label="業務担当者">
                     <el-input v-model="form.owner"></el-input>
                   </el-form-item>
+                  <el-form-item label="案件状態">
+                    <el-select v-model="form.caseStatus" :disabled="isClosed && !isAdmin">
+                      <el-option label="進行中" value="進行中"></el-option>
+                      <el-option label="保留" value="保留"></el-option>
+                      <el-option label="完了" value="完了"></el-option>
+                      <el-option label="終了" value="終了"></el-option>
+                    </el-select>
+                  </el-form-item>
+
                   <el-form-item label="Booking No.">
-                    <el-input v-model="form.bookingNo"></el-input>
+                    <el-input v-model="form.bookingNo" :disabled="isClosed"></el-input>
+                  </el-form-item>
+                  <el-form-item label="B/L No.">
+                    <el-input v-model="form.blNo" :disabled="isClosed"></el-input>
                   </el-form-item>
 
                   <el-form-item label="Shipper" class="full-row">
@@ -1319,13 +1478,6 @@
                     </div>
                   </el-form-item>
 
-                  <el-form-item label="B/L No.">
-                    <el-input v-model="form.blNo"></el-input>
-                  </el-form-item>
-                  <el-form-item label="VOY No.">
-                    <el-input v-model="form.voyNo"></el-input>
-                  </el-form-item>
-
                   <el-form-item label="船積港" class="full-row">
                     <div class="inline-pair">
                       <el-input v-model="form.loadingPortCode" placeholder="code"></el-input>
@@ -1352,6 +1504,10 @@
                       <el-input v-model="form.shippingCode" placeholder="code"></el-input>
                       <el-input :model-value="shippingName" placeholder="名称" readonly></el-input>
                     </div>
+                  </el-form-item>
+
+                  <el-form-item label="VOY No.">
+                    <el-input v-model="form.voyNo"></el-input>
                   </el-form-item>
 
                   <el-form-item label="船名" class="full-row">
@@ -1393,6 +1549,16 @@
                       <el-input v-model="form.customsBrokerSub" placeholder="名称2"></el-input>
                     </div>
                   </el-form-item>
+
+                  <el-form-item label="申告番号">
+                    <el-input v-model="form.declarationNo" placeholder="申告番号を入力" :disabled="isClosed"></el-input>
+                  </el-form-item>
+                  <el-form-item label="空バン申請有無">
+                    <el-select v-model="form.emptyContainerRequest" :disabled="isClosed">
+                      <el-option label="有" value="有"></el-option>
+                      <el-option label="無" value="無"></el-option>
+                    </el-select>
+                  </el-form-item>
                 </div>
               </div>
 
@@ -1407,6 +1573,13 @@
                   </el-form-item>
                 </div>
 
+                <div class="finance-tools">
+                  <div>
+                    <el-button type="primary" plain @click="addContainerRow">追加行</el-button>
+                  </div>
+                  <div class="table-note">删除行后会自动重新计算 No.</div>
+                </div>
+
                 <el-table :data="containerRows" border class="new-case-table" style="width:100%">
                   <el-table-column prop="no" label="No." width="60"></el-table-column>
                   <el-table-column prop="size" label="Size" width="120">
@@ -1415,6 +1588,7 @@
                         <el-option label="40HQ" value="40HQ"></el-option>
                         <el-option label="40DC" value="40DC"></el-option>
                         <el-option label="20DC" value="20DC"></el-option>
+                        <el-option label="その他" value="その他"></el-option>
                       </el-select>
                     </template>
                   </el-table-column>
@@ -1430,8 +1604,8 @@
                   <el-table-column prop="workCompanyName" label="作業会社名" width="160">
                     <template #default="scope"><el-input v-model="scope.row.workCompanyName"></el-input></template>
                   </el-table-column>
-                  <el-table-column prop="workCompanyAddress" label="作業会社住所" width="190">
-                    <template #default="scope"><el-input v-model="scope.row.workCompanyAddress"></el-input></template>
+                  <el-table-column prop="workplace" label="作業場所" width="190">
+                    <template #default="scope"><el-input v-model="scope.row.workplace"></el-input></template>
                   </el-table-column>
                   <el-table-column prop="chassis" label="シャーシ" width="100">
                     <template #default="scope"><el-input v-model="scope.row.chassis"></el-input></template>
@@ -1442,6 +1616,14 @@
                         <el-option label="〇" value="〇"></el-option>
                         <el-option label="◎" value="◎"></el-option>
                         <el-option label="×" value="×"></el-option>
+                      </el-select>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="contactStatus" label="連絡有無" width="110">
+                    <template #default="scope">
+                      <el-select v-model="scope.row.contactStatus">
+                        <el-option label="未" value="未"></el-option>
+                        <el-option label="済" value="済"></el-option>
                       </el-select>
                     </template>
                   </el-table-column>
@@ -1459,8 +1641,11 @@
                   <el-table-column prop="twKg" label="T/W（KG）" width="120">
                     <template #default="scope"><el-input v-model="scope.row.twKg"></el-input></template>
                   </el-table-column>
-                  <el-table-column prop="weightKgs" label="重量（KGS）" width="130">
-                    <template #default="scope"><el-input v-model="scope.row.weightKgs"></el-input></template>
+                  <el-table-column prop="netWeight" label="Net Weight" width="150">
+                    <template #default="scope"><el-input v-model="scope.row.netWeight" :disabled="isClosed"></el-input></template>
+                  </el-table-column>
+                  <el-table-column prop="grossWeight" label="Gross Weight" width="160">
+                    <template #default="scope"><el-input v-model="scope.row.grossWeight" :disabled="isClosed"></el-input></template>
                   </el-table-column>
                   <el-table-column prop="volumeM3" label="容積（M3）" width="120">
                     <template #default="scope"><el-input v-model="scope.row.volumeM3"></el-input></template>
@@ -1489,16 +1674,23 @@
                     </template>
                   </el-table-column>
                 </el-table>
-
-                <div class="new-case-actions">
-                  <el-button type="primary" plain @click="addContainerRow">行追加</el-button>
-                  <div class="table-note">删除行后会自动重新计算 No.</div>
-                </div>
               </div>
 
+
+
+              <el-alert
+                v-if="isClosed"
+                title="この案件は終了しました。変更できません。"
+                type="warning"
+                :closable="false"
+                show-icon
+                style="margin-bottom: 18px;"
+              ></el-alert>
+
               <div class="bottom-actions">
-                <el-button type="primary" @click="submitForm">保存</el-button>
+                <el-button type="primary" @click="submitForm" :disabled="isClosed">保存</el-button>
                 <el-button type="primary" plain @click="goBack">取消</el-button>
+                <el-button v-if="isClosed && isAdmin" type="warning" @click="unlockCase">終了解除</el-button>
               </div>
             </el-form>
           </el-card>
@@ -1551,37 +1743,40 @@
         const ocrPreviewUrl = Vue.ref("");
         const ocrPreviewType = Vue.ref("");
         const source = caseRows.find((item) => item.caseNo === route.query.caseNo) || caseRows[0];
-        const mode = Vue.computed(() => route.query.mode === "edit" ? "edit" : "new");
+        const sourceDetail = customsCaseDetails[source.caseNo] || {};
+        const mode = Vue.computed(() => route.query.mode === "edit" ? "edit" : route.query.mode === "copy" ? "copy" : "new");
+        const isCopy = Vue.computed(() => mode.value === "copy");
         const form = Vue.reactive({
-          caseNo: mode.value === "edit" ? source.caseNo : "B101ES26000004",
-          caseName: mode.value === "edit" ? "WAN HAI KOLKATA 4月案件" : "印度向け輸出案件 新規登録",
+          caseNo: mode.value === "edit" ? source.caseNo : "R20260416001",
+          quoteNo: mode.value === "edit" || isCopy.value ? (sourceDetail.quoteNo || "QT-2026-001") : "",
+          caseName: mode.value === "edit" ? (sourceDetail.caseName || "WAN HAI KOLKATA 4月案件") : isCopy.value ? (sourceDetail.caseName || "コピー案件") : "印度向け輸出案件 新規登録",
           clientNo: "TR-0098",
-          clientName: "岩并化成株式会社",
-          owner: "佐藤 美咲",
+          clientName: isCopy.value && sourceDetail.clientName ? sourceDetail.clientName : "岩并化成株式会社",
+          owner: isCopy.value && sourceDetail.owner ? sourceDetail.owner : "佐藤 美咲",
           shipperCode: "SP-1201",
-          shipperDetail: "TOKYO CHEMICAL EXPORT CO., LTD.\n2-3-5 Shinkiba, Koto-ku, Tokyo",
+          shipperDetail: isCopy.value && sourceDetail.shipperDetail ? sourceDetail.shipperDetail : "TOKYO CHEMICAL EXPORT CO., LTD.\n2-3-5 Shinkiba, Koto-ku, Tokyo",
           customsTitleCode: "CT-8801",
           customsTitleName: "岩并化成 通関名義",
           consigneeCode: "CS-4100",
-          consigneeDetail: "INDIA TRADE PARTNERS LTD.\nKOLKATA INDUSTRIAL ZONE",
+          consigneeDetail: isCopy.value && sourceDetail.consigneeDetail ? sourceDetail.consigneeDetail : "INDIA TRADE PARTNERS LTD.\nKOLKATA INDUSTRIAL ZONE",
           notifyCode: "NP-4100",
-          notifyDetail: "INDIA TRADE PARTNERS LTD.\nATTN: IMPORT CONTROL TEAM",
+          notifyDetail: isCopy.value && sourceDetail.notifyDetail ? sourceDetail.notifyDetail : "INDIA TRADE PARTNERS LTD.\nATTN: IMPORT CONTROL TEAM",
           shippingCode: "WHL",
           vesselCode: "VS-9001",
-          vesselName: "WAN HAI 308",
-          destination: mode.value === "edit" ? source.destination : "NHAVA SHEVA, INDIA",
-          workplace: mode.value === "edit" ? source.workplace : "東京物流センター",
-          bookingNo: mode.value === "edit" ? source.bookingNo : "008GX09340",
-          blNo: mode.value === "edit" ? source.blNo : "008GX09340",
+          vesselName: isCopy.value && sourceDetail.vesselName ? sourceDetail.vesselName : "WAN HAI 308",
+          destination: mode.value === "edit" || isCopy.value ? source.destination : "NHAVA SHEVA, INDIA",
+          workplace: mode.value === "edit" || isCopy.value ? source.workplace : "東京物流センター",
+          bookingNo: mode.value === "edit" || isCopy.value ? source.bookingNo : "008GX09340",
+          blNo: mode.value === "edit" || isCopy.value ? source.blNo : "008GX09340",
           voyNo: "V.2404E",
           loadingPortCode: "JPYOK",
-          loadingPortName: "YOKOHAMA",
+          loadingPortName: isCopy.value && sourceDetail.loadingPortName ? sourceDetail.loadingPortName : "YOKOHAMA",
           finalDestinationCode: "INKOL",
-          finalDestinationName: "KOLKATA, INDIA",
+          finalDestinationName: isCopy.value && sourceDetail.finalDestinationName ? sourceDetail.finalDestinationName : "KOLKATA, INDIA",
           bookingAgentCode: "NY-0021",
           bookingAgentName: "NYOCC TOKYO",
-          etd: mode.value === "edit" ? source.etd : "2026/04/10",
-          eta: mode.value === "edit" ? source.eta : "2026/04/18",
+          etd: mode.value === "edit" || isCopy.value ? source.etd : "2026/04/10",
+          eta: mode.value === "edit" || isCopy.value ? source.eta : "2026/04/18",
           docCutDate: "2026/04/05",
           docCutNote: "AMS提出済",
           cyCutDate: "2026/04/06",
@@ -1590,8 +1785,9 @@
           customsBrokerCode: "CB-2201",
           customsBrokerName: "東京通関株式会社",
           customsBrokerSub: "新木場営業所",
-          itemName: "化学原料",
+          itemName: isCopy.value && sourceDetail.itemName ? sourceDetail.itemName : "化学原料",
           productName: "",
+          caseStatus: mode.value === "edit" && source.caseStatus ? source.caseStatus : "進行中",
         });
         const ocrResult = Vue.reactive({
           containerNo: "",
@@ -1606,13 +1802,15 @@
           drayageCompany: row.drayageCompany ?? "藤井光輝",
           workDateTime: row.workDateTime ?? "2026/04/04 10:30",
           workCompanyName: row.workCompanyName ?? "東京運送株式会社",
-          workCompanyAddress: row.workCompanyAddress ?? "東京都江東区新木場2-3-5",
+          workplace: row.workplace ?? "東京都江東区新木場2-3-5",
           chassis: row.chassis ?? "３軸",
           weightBridge: row.weightBridge ?? "〇",
+          contactStatus: row.contactStatus ?? "未",
           containerNo: row.containerNo ?? (mode.value === "edit" ? source.containerNo : "WHSU6329394"),
           sealNo: row.sealNo ?? "WHA3010336",
           twKg: row.twKg ?? "3,750",
-          weightKgs: row.weightKgs ?? "26,011.00",
+          netWeight: row.netWeight ?? "22,261.00",
+          grossWeight: row.grossWeight ?? "26,011.00",
           volumeM3: row.volumeM3 ?? "45.000",
           quantity: row.quantity ?? "36",
           quantityUnit: row.quantityUnit ?? "BG",
@@ -1620,9 +1818,32 @@
           currency: row.currency ?? "円"
         });
 
-        const containerRows = Vue.ref([
-          makeContainerRow()
-        ]);
+        const sourceContainers = Array.isArray(sourceDetail.containers) ? sourceDetail.containers : [];
+        const containerRows = Vue.ref(
+          isCopy.value && sourceContainers.length
+            ? sourceContainers.map((item, index) => makeContainerRow({
+                size: item.size || "40HQ",
+                count: String(item.count ?? 1),
+                drayageCompany: item.drayageCompany || "藤井光輝",
+                workDateTime: item.workDateTime || "2026/04/04 10:30",
+                workCompanyName: item.workCompanyName || "東京運送株式会社",
+                workplace: item.workplace || "東京都江東区新木場2-3-5",
+                chassis: item.chassis || "３軸",
+                weightBridge: item.weightBridge || "〇",
+                contactStatus: item.contactStatus || "未",
+                containerNo: item.containerNo || source.containerNo,
+                sealNo: item.sealNo || "",
+                twKg: item.netWeight || item.grossWeight || "",
+                netWeight: item.netWeight || "",
+                grossWeight: item.grossWeight || "",
+                volumeM3: item.volumeM3 || "",
+                quantity: item.quantity || "",
+                quantityUnit: item.unit || "BG",
+                unitPrice: item.unitPrice || "",
+                currency: String(item.currency || "").includes("USD") ? "ドル" : (String(item.currency || "").includes("元") ? "元" : "円")
+              }))
+            : [makeContainerRow()]
+        );
 
         const renumberRows = () => {
           containerRows.value.forEach((item, index) => {
@@ -1650,13 +1871,15 @@
             drayageCompany: "",
             workDateTime: "",
             workCompanyName: "",
-            workCompanyAddress: "",
+            workplace: "",
             chassis: "",
             weightBridge: "",
+            contactStatus: "未",
             containerNo: "",
             sealNo: "",
             twKg: "",
-            weightKgs: "",
+            netWeight: "",
+            grossWeight: "",
             volumeM3: "",
             quantity: "",
             quantityUnit: "",
@@ -1720,6 +1943,7 @@
           rules,
           shippingName,
           mode,
+          isCopy,
           goBack,
           ArrowLeft,
           Expand,
@@ -1754,7 +1978,7 @@
             <el-tag type="danger">待审核 5 项</el-tag>
           </div>
 
-          <el-table :data="rows" border class="finance-list-table" style="width: 100%">
+          <el-table :data="pagedRows" border class="finance-list-table" style="width: 100%">
             <el-table-column prop="id" label="申请单号" width="160"></el-table-column>
             <el-table-column prop="title" label="案件标题" min-width="220"></el-table-column>
             <el-table-column prop="applicant" label="申请人" width="120"></el-table-column>
@@ -1767,6 +1991,19 @@
               </template>
             </el-table-column>
           </el-table>
+
+          <div class="table-pagination">
+            <el-pagination
+              :current-page="currentPage"
+              :page-size="pageSize"
+              :page-sizes="[10, 20, 50]"
+              :total="total"
+              layout="total, sizes, prev, pager, next"
+              background
+              @size-change="handleSizeChange"
+              @current-change="handleCurrentChange"
+            />
+          </div>
         </div>
       `,
       setup() {
@@ -1775,7 +2012,8 @@
           { id: "RV-260330", title: "员工竞业限制补偿纠纷", applicant: "宋泽", submittedAt: "2026-03-30 14:05", risk: "高" },
           { id: "RV-260329", title: "设备采购付款延期谈判", applicant: "刘琪", submittedAt: "2026-03-29 11:42", risk: "低" }
         ];
-        return { rows };
+        const pagination = useTablePagination(Vue.ref(rows));
+        return { rows, ...pagination };
       }
     };
 
@@ -1828,61 +2066,125 @@
       }
     };
 
+    // --- 通関管理 案件詳細 Mock Data ---
+    const customsCaseDetails = {
+      "R20260301001": {
+        caseNo: "R20260301001",
+        caseName: "岩并化成 → KOLKATA",
+        shipperDetail: "KEIYO INT'L LOGISTICS CO.,LTD\n2-2-7 Minamishinagawa, Shinagawa-ku,\nTokyo 140-0004 JAPAN\nTEL: 03-5769-XXXX FAX: 03-5769-XXXX",
+        consigneeDetail: "ABC TRADING PVT. LTD.\n123 Industrial Area, Kolkata 700001, INDIA\nTEL: +91-33-XXXX-XXXX",
+        notifyDetail: "SAME AS CONSIGNEE",
+        vesselName: "WAN HAI 312",
+        voyNo: "N456",
+        loadingPortName: "YOKOHAMA, JAPAN",
+        finalDestinationName: "KOLKATA, INDIA",
+        blNo: "008GX09338",
+        etd: "2026/04/05",
+        itemName: "METAL SCRAP",
+        containers: [
+          { containerNo: "WHLU1234567", sealNo: "SL001", description: "METAL SCRAP", quantity: 22000, unit: "KGS", netWeight: 21500, grossWeight: 22000, volumeM3: 33.2, unitPrice: 45, currency: "JPY¥" },
+          { containerNo: "WHLU7654321", sealNo: "SL002", description: "METAL SCRAP", quantity: 21800, unit: "KGS", netWeight: 21300, grossWeight: 21800, volumeM3: 33.0, unitPrice: 45, currency: "JPY¥" }
+        ]
+      },
+      "R20260315002": {
+        caseNo: "R20260315002",
+        caseName: "東海物流 → NINGBO",
+        shipperDetail: "ZUISHO LOGISTICS CO.,LTD\nChiba-ken Chiba-shi Chuo-ku, JAPAN\nTEL: 043-XXX-XXXX",
+        consigneeDetail: "NINGBO IMPORT EXPORT CO., LTD.\n88 Beilun Rd, Ningbo 315800, CHINA",
+        notifyDetail: "SAME AS CONSIGNEE",
+        vesselName: "KMTC TOKYO",
+        voyNo: "0102S",
+        loadingPortName: "YOKOHAMA, JAPAN",
+        finalDestinationName: "NINGBO(DAXIE), CHINA",
+        blNo: "008GX09337",
+        etd: "2026/04/12",
+        itemName: "STAINLESS STEEL SCRAP",
+        containers: [
+          { containerNo: "KMTU9988776", sealNo: "KS101", description: "STAINLESS STEEL SCRAP", quantity: 25000, unit: "KGS", netWeight: 24500, grossWeight: 25000, volumeM3: 30.5, unitPrice: 120, currency: "JPY¥" }
+        ]
+      },
+      "R20260320003": {
+        caseNo: "R20260320003",
+        caseName: "明川科技 → QINGDAO",
+        shipperDetail: "KEIYO INT'L LOGISTICS CO.,LTD\n2-2-7 Minamishinagawa, Shinagawa-ku,\nTokyo 140-0004 JAPAN",
+        consigneeDetail: "QINGDAO MATERIALS CO., LTD.\n56 Harbor Rd, Qingdao 266000, CHINA",
+        notifyDetail: "SAME AS CONSIGNEE",
+        vesselName: "OOCL TOKYO",
+        voyNo: "088E",
+        loadingPortName: "SHIMIZU, JAPAN",
+        finalDestinationName: "QINGDAO, CHINA",
+        blNo: "008GX09336",
+        etd: "2026/04/18",
+        itemName: "NEW PAPER PULP",
+        containers: [
+          { containerNo: "OOLU1122334", sealNo: "QD01", description: "NEW PAPER PULP", quantity: 20000, unit: "KGS", netWeight: 19800, grossWeight: 20000, volumeM3: 55.0, unitPrice: 60, currency: "JPY¥" },
+          { containerNo: "OOLU5566778", sealNo: "QD02", description: "NEW PAPER PULP", quantity: 20500, unit: "KGS", netWeight: 20200, grossWeight: 20500, volumeM3: 56.0, unitPrice: 60, currency: "JPY¥" },
+          { containerNo: "OOLU9900112", sealNo: "QD03", description: "NEW PAPER PULP", quantity: 19500, unit: "KGS", netWeight: 19200, grossWeight: 19500, volumeM3: 54.0, unitPrice: 60, currency: "JPY¥" }
+        ]
+      }
+    };
+
     const financeCases = [
       {
         no: 1,
-        caseNo: "B101ES26000001",
+        caseNo: "R20260301001",
         caseName: "WAN HAI KOLKATA 4月案件",
         owner: "佐藤 美咲",
-        clientCode: "TR-0098",
         clientName: "岩并化成株式会社",
+        financeManager: "田中太郎",
         orderDate: "2026/04/01",
         billingTotal: 285000,
         paymentTotal: 183000,
         billingDetails: [
-          { branch: "01", partner: "岩并化成株式会社", status: "請求済", advanceAmount: 15000, amount: 270000, currency: "円", total: 285000 }
+          { branch: "01", partner: "岩并化成株式会社", status: "請求済", advanceAmount: 15000, amount: 180000, currency: "円", total: 195000 },
+          { branch: "02", partner: "岩并化成株式会社", status: "請求済", advanceAmount: 0, amount: 55000, currency: "円", total: 55000 },
+          { branch: "03", partner: "岩并化成株式会社", status: "未請求", advanceAmount: 0, amount: 35000, currency: "円", total: 35000 }
         ],
         paymentDetails: [
-          { branch: "01", partner: "東京運送株式会社", category: "運送", status: "支払済", advanceAmount: 8000, amount: 42000, currency: "円", total: 50000 },
-          { branch: "02", partner: "東京通関株式会社", category: "通関", status: "支払済", advanceAmount: 5000, amount: 38000, currency: "円", total: 43000 },
-          { branch: "03", partner: "港湾サービス", category: "港費", status: "未払", advanceAmount: 0, amount: 90000, currency: "円", total: 90000 }
+          { branch: "01", partner: "東京運送株式会社", category: "運送", status: "支払済", advanceAmount: 8000, amount: 42000, currency: "円", total: 50000, paymentState: "済", paymentDate: "2026/04/10" },
+          { branch: "02", partner: "東京通関株式会社", category: "通関", status: "支払済", advanceAmount: 5000, amount: 38000, currency: "円", total: 43000, paymentState: "済", paymentDate: "2026/04/12" },
+          { branch: "03", partner: "港湾サービス", category: "港費", status: "未払", advanceAmount: 0, amount: 90000, currency: "円", total: 90000, paymentState: "未支付", paymentDate: "" }
         ]
       },
       {
         no: 2,
-        caseNo: "B101ES26000002",
+        caseNo: "R20260315002",
         caseName: "NHAVA SHEVA 輸出案件",
         owner: "高橋 優",
-        clientCode: "TR-0110",
         clientName: "東海物流株式会社",
+        financeManager: "佐藤花子",
         orderDate: "2026/03/28",
         billingTotal: 198000,
         paymentTotal: 121500,
         billingDetails: [
-          { branch: "01", partner: "東海物流株式会社", status: "請求済", advanceAmount: 10000, amount: 188000, currency: "円", total: 198000 }
+          { branch: "01", partner: "東海物流株式会社", status: "請求済", advanceAmount: 10000, amount: 98000, currency: "円", total: 108000 },
+          { branch: "02", partner: "東海物流株式会社", status: "請求済", advanceAmount: 0, amount: 50000, currency: "円", total: 50000 },
+          { branch: "03", partner: "東海物流株式会社", status: "未請求", advanceAmount: 0, amount: 40000, currency: "円", total: 40000 }
         ],
         paymentDetails: [
-          { branch: "01", partner: "横浜運輸", category: "運送", status: "支払済", advanceAmount: 5000, amount: 56500, currency: "円", total: 61500 },
-          { branch: "02", partner: "港湾ライン", category: "港費", status: "支払済", advanceAmount: 0, amount: 60000, currency: "円", total: 60000 }
+          { branch: "01", partner: "横浜運輸", category: "運送", status: "支払済", advanceAmount: 5000, amount: 56500, currency: "円", total: 61500, paymentState: "済", paymentDate: "2026/04/05" },
+          { branch: "02", partner: "港湾ライン", category: "港費", status: "支払済", advanceAmount: 0, amount: 60000, currency: "円", total: 60000, paymentState: "済", paymentDate: "2026/04/08" }
         ]
       },
       {
         no: 3,
-        caseNo: "B101ES26000003",
+        caseNo: "R20260320003",
         caseName: "設備部材 緊急輸出案件",
         owner: "中村 亮",
-        clientCode: "TR-0155",
         clientName: "明川科技",
+        financeManager: "山田一郎",
         orderDate: "2026/03/25",
         billingTotal: 356000,
         paymentTotal: 244500,
         billingDetails: [
-          { branch: "01", partner: "明川科技", status: "未請求", advanceAmount: 20000, amount: 336000, currency: "円", total: 356000 }
+          { branch: "01", partner: "明川科技", status: "未請求", advanceAmount: 20000, amount: 160000, currency: "円", total: 180000 },
+          { branch: "02", partner: "明川科技", status: "請求済", advanceAmount: 0, amount: 96000, currency: "円", total: 96000 },
+          { branch: "03", partner: "明川科技", status: "未請求", advanceAmount: 0, amount: 80000, currency: "円", total: 80000 }
         ],
         paymentDetails: [
-          { branch: "01", partner: "国際搬送", category: "運送", status: "支払済", advanceAmount: 10000, amount: 110000, currency: "円", total: 120000 },
-          { branch: "02", partner: "通関サービス東京", category: "通関", status: "支払済", advanceAmount: 4500, amount: 70000, currency: "円", total: 74500 },
-          { branch: "03", partner: "保険代理店", category: "保険", status: "未払", advanceAmount: 0, amount: 50000, currency: "円", total: 50000 }
+          { branch: "01", partner: "国際搬送", category: "運送", status: "支払済", advanceAmount: 10000, amount: 110000, currency: "円", total: 120000, paymentState: "済", paymentDate: "2026/03/30" },
+          { branch: "02", partner: "通関サービス東京", category: "通関", status: "支払済", advanceAmount: 4500, amount: 70000, currency: "円", total: 74500, paymentState: "済", paymentDate: "2026/04/01" },
+          { branch: "03", partner: "保険代理店", category: "保険", status: "未払", advanceAmount: 0, amount: 50000, currency: "円", total: 50000, paymentState: "未支付", paymentDate: "" }
         ]
       }
     ];
@@ -1921,7 +2223,7 @@
             </div>
 
             <div class="search-actions">
-              <el-button type="primary" :icon="Search">查询</el-button>
+              <el-button type="primary" :icon="Search">検索</el-button>
             </div>
           </div>
 
@@ -1930,7 +2232,7 @@
             <div class="table-note">「詳細」をクリックすると、案件配下の収支明細を右側 Drawer に表示します。</div>
           </div>
 
-          <el-table :data="rows" border style="width: 100%">
+          <el-table :data="pagedRows" border style="width: 100%">
             <el-table-column prop="no" label="No." min-width="70"></el-table-column>
             <el-table-column label="操作" min-width="120">
               <template #default="scope">
@@ -1954,6 +2256,19 @@
               <template #default="scope">{{ formatPercent((scope.row.billingTotal - scope.row.paymentTotal) / scope.row.billingTotal * 100) }}</template>
             </el-table-column>
           </el-table>
+
+          <div class="table-pagination">
+            <el-pagination
+              :current-page="currentPage"
+              :page-size="pageSize"
+              :page-sizes="[10, 20, 50]"
+              :total="total"
+              layout="total, sizes, prev, pager, next"
+              background
+              @size-change="handleSizeChange"
+              @current-change="handleCurrentChange"
+            />
+          </div>
 
           <div class="finance-summary">
             <div class="finance-stat">
@@ -2024,6 +2339,12 @@
                   <el-table-column prop="total" label="合計金額" width="130">
                     <template #default="scope">{{ formatCurrencyYen(scope.row.total) }}</template>
                   </el-table-column>
+                  <el-table-column prop="paymentState" label="支付状態" width="100">
+                    <template #default="scope">
+                      <el-tag :type="scope.row.paymentState === '済' ? 'success' : 'info'">{{ scope.row.paymentState || '未支付' }}</el-tag>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="paymentDate" label="支付日" width="120"></el-table-column>
                 </el-table>
               </div>
             </div>
@@ -2044,6 +2365,7 @@
         const router = VueRouter.useRouter();
         const filters = Vue.reactive({ caseNo: "", owner: "", client: "", orderDate: "" });
         const rows = Vue.ref(financeCases);
+        const pagination = useTablePagination(rows);
         const drawerVisible = Vue.ref(false);
         const activeCase = Vue.ref(null);
         const totalBilling = Vue.computed(() => rows.value.reduce((sum, item) => sum + item.billingTotal, 0));
@@ -2057,6 +2379,7 @@
         return {
           filters,
           rows,
+          ...pagination,
           drawerVisible,
           activeCase,
           totalBilling,
@@ -2095,8 +2418,15 @@
                   </el-form-item>
                   <el-form-item label="案件名"><el-input :model-value="selectedCase.caseName" readonly></el-input></el-form-item>
                   <el-form-item label="業務担当者"><el-input :model-value="selectedCase.owner" readonly></el-input></el-form-item>
-                  <el-form-item label="取引先コード"><el-input :model-value="selectedCase.clientCode" readonly></el-input></el-form-item>
                   <el-form-item label="取引先名"><el-input :model-value="selectedCase.clientName" readonly></el-input></el-form-item>
+                  <el-form-item label="請求先"><el-input v-model="billingCustomer" readonly></el-input></el-form-item>
+                  <el-form-item label="収支業務担当">
+                    <el-select v-model="financeManager" placeholder="選択してください">
+                      <el-option label="田中太郎" value="田中太郎"></el-option>
+                      <el-option label="佐藤花子" value="佐藤花子"></el-option>
+                      <el-option label="山田一郎" value="山田一郎"></el-option>
+                    </el-select>
+                  </el-form-item>
                 </div>
               </div>
 
@@ -2105,29 +2435,43 @@
                 <div class="finance-tools">
                   <div>
                     <el-button type="primary" plain @click="copyBillingRows">コピー</el-button>
-                    <el-button type="primary" plain @click="addBillingRow">行追加</el-button>
+                    <el-button type="primary" plain @click="addBillingRow">追加行</el-button>
                   </div>
                 </div>
                 <el-table :data="billingRows" border class="new-case-table">
+                  <el-table-column label="No." width="60">
+                    <template #default="scope">{{ scope.$index + 1 }}</template>
+                  </el-table-column>
                   <el-table-column label="" width="56">
                     <template #default="scope"><el-checkbox v-model="scope.row.checked"></el-checkbox></template>
                   </el-table-column>
-                  <el-table-column prop="branch" label="枝" width="80"><template #default="scope"><el-input v-model="scope.row.branch"></el-input></template></el-table-column>
-                  <el-table-column prop="partner" label="請求先" min-width="160"><template #default="scope"><el-input v-model="scope.row.partner"></el-input></template></el-table-column>
-                  <el-table-column prop="status" label="状態" width="120"><template #default="scope"><el-input v-model="scope.row.status"></el-input></template></el-table-column>
-                  <el-table-column prop="advanceAmount" label="立替金額" width="120"><template #default="scope"><el-input v-model="scope.row.advanceAmount"></el-input></template></el-table-column>
-                  <el-table-column prop="amount" label="請求金額" width="120"><template #default="scope"><el-input v-model="scope.row.amount"></el-input></template></el-table-column>
-                  <el-table-column prop="currency" label="金額単位" width="150">
+                  <el-table-column prop="item" label="項目" min-width="120"><template #default="scope"><el-input v-model="scope.row.item"></el-input></template></el-table-column>
+                  <el-table-column prop="itemJa" label="請求項目(日本語)" min-width="160"><template #default="scope"><el-input v-model="scope.row.itemJa"></el-input></template></el-table-column>
+                  <el-table-column prop="taxType" label="税区分" min-width="130">
                     <template #default="scope">
-                      <el-select v-model="scope.row.currency">
-                        <el-option label="円" value="円"></el-option>
-                        <el-option label="ドル" value="ドル"></el-option>
-                        <el-option label="元" value="元"></el-option>
+                      <el-select v-model="scope.row.taxType">
+                        <el-option label="1:課税外税" value="1"></el-option>
+                        <el-option label="2:免税" value="2"></el-option>
                       </el-select>
                     </template>
                   </el-table-column>
-                  <el-table-column label="合計金額" width="140">
-                    <template #default="scope">{{ formatCurrencyYen(calcConvertedTotal(scope.row)) }}</template>
+                  <el-table-column prop="quantity" label="数量" width="100"><template #default="scope"><el-input v-model="scope.row.quantity"></el-input></template></el-table-column>
+                  <el-table-column prop="currency" label="通貨" width="100">
+                    <template #default="scope">
+                      <el-select v-model="scope.row.currency">
+                        <el-option label="JPY" value="JPY"></el-option>
+                        <el-option label="USD" value="USD"></el-option>
+                        <el-option label="RMB" value="RMB"></el-option>
+                      </el-select>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="rate" label="レート" width="110"><template #default="scope"><el-input v-model="scope.row.rate"></el-input></template></el-table-column>
+                  <el-table-column prop="unitPrice" label="単価" width="110"><template #default="scope"><el-input v-model="scope.row.unitPrice"></el-input></template></el-table-column>
+                  <el-table-column label="金額" width="120">
+                    <template #default="scope">{{ formatCurrencyYen(calcBillingRowAmount(scope.row)) }}</template>
+                  </el-table-column>
+                  <el-table-column label="精算金額" width="130">
+                    <template #default="scope">{{ formatCurrencyYen(calcBillingSettlement(scope.row)) }}</template>
                   </el-table-column>
                   <el-table-column label="操作" width="80" fixed="right">
                     <template #default="scope">
@@ -2142,14 +2486,16 @@
                 <div class="finance-tools">
                   <div>
                     <el-button type="primary" plain @click="copyPaymentRows">コピー</el-button>
-                    <el-button type="primary" plain @click="addPaymentRow">行追加</el-button>
+                    <el-button type="primary" plain @click="addPaymentRow">追加行</el-button>
                   </div>
                 </div>
                 <el-table :data="paymentRows" border class="new-case-table">
+                  <el-table-column label="No." width="60">
+                    <template #default="scope">{{ scope.$index + 1 }}</template>
+                  </el-table-column>
                   <el-table-column label="" width="56">
                     <template #default="scope"><el-checkbox v-model="scope.row.checked"></el-checkbox></template>
                   </el-table-column>
-                  <el-table-column prop="branch" label="枝" width="80"><template #default="scope"><el-input v-model="scope.row.branch"></el-input></template></el-table-column>
                   <el-table-column prop="partner" label="支払先" min-width="160"><template #default="scope"><el-input v-model="scope.row.partner"></el-input></template></el-table-column>
                   <el-table-column prop="category" label="区分" width="120"><template #default="scope"><el-input v-model="scope.row.category"></el-input></template></el-table-column>
                   <el-table-column prop="status" label="状態" width="120"><template #default="scope"><el-input v-model="scope.row.status"></el-input></template></el-table-column>
@@ -2166,6 +2512,17 @@
                   </el-table-column>
                   <el-table-column label="合計金額" width="140">
                     <template #default="scope">{{ formatCurrencyYen(calcConvertedTotal(scope.row)) }}</template>
+                  </el-table-column>
+                  <el-table-column prop="paymentState" label="支付状態" width="130">
+                    <template #default="scope">
+                      <el-select v-model="scope.row.paymentState">
+                        <el-option label="未支付" value="未支付"></el-option>
+                        <el-option label="済" value="済"></el-option>
+                      </el-select>
+                    </template>
+                  </el-table-column>
+                  <el-table-column prop="paymentDate" label="支付日" width="160">
+                    <template #default="scope"><el-date-picker v-model="scope.row.paymentDate" type="date" format="YYYY/MM/DD" value-format="YYYY/MM/DD" style="width:100%;"></el-date-picker></template>
                   </el-table-column>
                   <el-table-column label="操作" width="80" fixed="right">
                     <template #default="scope">
@@ -2227,7 +2584,6 @@
               <el-table-column prop="caseNo" label="案件番号" width="160"></el-table-column>
               <el-table-column prop="caseName" label="案件名" min-width="200"></el-table-column>
               <el-table-column prop="owner" label="業務担当者" width="120"></el-table-column>
-              <el-table-column prop="clientCode" label="取引先コード" width="140"></el-table-column>
               <el-table-column prop="clientName" label="取引先名" min-width="180"></el-table-column>
               <el-table-column label="操作" width="100">
                 <template #default="scope">
@@ -2245,20 +2601,22 @@
           caseNo: item.caseNo,
           caseName: item.caseName,
           owner: item.owner,
-          clientCode: item.clientCode,
           clientName: item.clientName
         }));
         const selectedCase = Vue.reactive(caseOptions.find(item => item.caseNo === route.query.caseNo) || caseOptions[0]);
         const selectorVisible = Vue.ref(false);
+        const financeManager = Vue.ref("");
+        const billingCustomer = Vue.ref(selectedCase.clientName || "");
         const rates = Vue.reactive({ cnyToJpy: "21.5", usdToJpy: "151.2" });
         const makeBillingRow = (row = {}) => ({
           checked: false,
-          branch: row.branch || "",
-          partner: row.partner || "",
-          status: row.status || "",
-          advanceAmount: row.advanceAmount ?? 0,
-          amount: row.amount ?? 0,
-          currency: row.currency || "円"
+          item: row.item || "",
+          itemJa: row.itemJa || "",
+          taxType: row.taxType || "1",
+          quantity: row.quantity ?? 1,
+          currency: row.currency || "JPY",
+          rate: row.rate ?? 1,
+          unitPrice: row.unitPrice ?? 0
         });
         const makePaymentRow = (row = {}) => ({
           checked: false,
@@ -2268,12 +2626,28 @@
           status: row.status || "",
           advanceAmount: row.advanceAmount ?? 0,
           amount: row.amount ?? 0,
-          currency: row.currency || "円"
+          currency: row.currency || "円",
+          paymentState: row.paymentState || "未支付",
+          paymentDate: row.paymentDate || ""
         });
+        const buildBillingRowsFromCase = (target) => {
+          if (target && Array.isArray(target.billingDetails) && target.billingDetails.length) {
+            return target.billingDetails.map((item, index) => makeBillingRow({
+              item: "ITEM-" + String(index + 1).padStart(2, "0"),
+              itemJa: item.partner || "請求項目",
+              taxType: index % 2 === 0 ? "1" : "2",
+              quantity: 1,
+              currency: item.currency === "円" ? "JPY" : item.currency === "ドル" ? "USD" : item.currency === "元" ? "RMB" : "JPY",
+              rate: 1,
+              unitPrice: Number(item.advanceAmount || 0) + Number(item.amount || 0)
+            }));
+          }
+          return [makeBillingRow()];
+        };
         const templateCase = financeCases.find(item => item.caseNo === selectedCase.caseNo) || financeCases[0];
-        const billingRows = Vue.ref(templateCase.billingDetails.map(item => makeBillingRow(item)));
+        const billingRows = Vue.ref(buildBillingRowsFromCase(templateCase));
         const paymentRows = Vue.ref(templateCase.paymentDetails.map(item => makePaymentRow(item)));
-        const exchangeValue = (currency) => currency === "ドル" ? Number(rates.usdToJpy || 0) : currency === "元" ? Number(rates.cnyToJpy || 0) : 1;
+        const exchangeValue = (currency) => currency === "USD" || currency === "ドル" ? Number(rates.usdToJpy || 0) : currency === "RMB" || currency === "元" ? Number(rates.cnyToJpy || 0) : 1;
         const calcConvertedTotal = (row) => (Number(row.advanceAmount || 0) + Number(row.amount || 0)) * exchangeValue(row.currency);
         const totalBillingCalc = Vue.computed(() => billingRows.value.reduce((sum, row) => sum + calcConvertedTotal(row), 0));
         const totalPaymentCalc = Vue.computed(() => paymentRows.value.reduce((sum, row) => sum + calcConvertedTotal(row), 0));
@@ -2294,7 +2668,8 @@
         const selectCase = (row) => {
           const target = financeCases.find(item => item.caseNo === row.caseNo) || financeCases[0];
           Object.assign(selectedCase, row);
-          billingRows.value = target.billingDetails.map(item => makeBillingRow(item));
+          billingCustomer.value = row.clientName || "";
+          billingRows.value = buildBillingRowsFromCase(target);
           paymentRows.value = target.paymentDetails.map(item => makePaymentRow(item));
           selectorVisible.value = false;
         };
@@ -2307,6 +2682,8 @@
           selectedCase,
           caseOptions,
           selectorVisible,
+          financeManager,
+          billingCustomer,
           Delete,
           billingRows,
           paymentRows,
@@ -2322,6 +2699,8 @@
           selectCase,
           saveFinance,
           goBack,
+          calcBillingRowAmount,
+          calcBillingSettlement,
           calcConvertedTotal,
           formatCurrencyYen,
           formatPercent
@@ -2332,9 +2711,20 @@
     const billingRowsSeed = [
       {
         billNo: "IV-260401",
+        caseNo: "R20260301001",
         customer: "岩并化成株式会社",
+        workplace: "岩并化成",
+        exportCaseNo: "131",
+        exportUnitCount: "",
+        exportFukaya: 1,
+        exportTochigi: 3,
+        exportWorkplace: "",
+        exportOutbound: "●",
+        exportInbound: "",
         issueDate: "2026/04/01",
         plannedDate: "2026/04/20",
+        containerCount: 10,
+        outputStatus: "出力済",
         total: 285000,
         criterion: "B/L(AWB)DA",
         accountingDate: "2026/04/01",
@@ -2349,9 +2739,20 @@
       },
       {
         billNo: "IV-260328",
+        caseNo: "R20260315002",
         customer: "東海物流株式会社",
+        workplace: "横浜CY",
+        exportCaseNo: "140",
+        exportUnitCount: "",
+        exportFukaya: 6,
+        exportTochigi: 1,
+        exportWorkplace: "",
+        exportOutbound: "●",
+        exportInbound: "",
         issueDate: "2026/03/28",
         plannedDate: "2026/04/15",
+        containerCount: 20,
+        outputStatus: "出力済",
         total: 198000,
         criterion: "B/L(AWB)DA",
         accountingDate: "2026/03/28",
@@ -2385,49 +2786,125 @@
                 <el-input v-model="filters.customer"></el-input>
               </div>
               <div class="search-field">
-                <label class="search-label">請求書発行日</label>
-                <el-date-picker v-model="filters.issueDate" type="date" format="YYYY/MM/DD" value-format="YYYY/MM/DD" style="width:100%;"></el-date-picker>
+                <label class="search-label">請求書発行日From～To</label>
+                <div class="compact-date-range">
+                  <el-date-picker v-model="filters.issueDateFrom" type="date" placeholder="From" format="YYYY/MM/DD" value-format="YYYY/MM/DD"></el-date-picker>
+                  <span class="sep">〜</span>
+                  <el-date-picker v-model="filters.issueDateTo" type="date" placeholder="To" format="YYYY/MM/DD" value-format="YYYY/MM/DD"></el-date-picker>
+                </div>
               </div>
             </div>
             <div class="search-actions">
-              <el-button type="primary" :icon="Search">查询</el-button>
+              <el-button type="primary" :icon="Search">検索</el-button>
             </div>
           </div>
 
           <div class="case-toolbar">
             <el-button type="primary" :icon="Plus" @click="goNew">新規</el-button>
+            <el-button type="primary" plain @click="exportBillingList">出力</el-button>
           </div>
 
-          <el-table :data="rows" border class="finance-list-table" style="width:100%">
+          <el-table :data="pagedRows" border class="finance-list-table" style="width:100%">
             <el-table-column prop="index" label="No." min-width="70">
               <template #default="scope">{{ scope.$index + 1 }}</template>
             </el-table-column>
-            <el-table-column label="操作" min-width="130">
-              <template #default="scope">
-                <div class="operation-links">
-                  <a href="#" class="action-link action-edit" @click.prevent="goEdit(scope.row)">编辑</a>
-                  <a href="#" class="action-link action-delete" @click.prevent="deleteBill(scope.row)">删除</a>
-                </div>
-              </template>
-            </el-table-column>
-            <el-table-column prop="billNo" label="請求番号" min-width="140"></el-table-column>
-            <el-table-column prop="customer" label="請求先" min-width="180"></el-table-column>
-            <el-table-column prop="issueDate" label="請求書発行日" min-width="140"></el-table-column>
-            <el-table-column prop="plannedDate" label="入金予定日" min-width="140"></el-table-column>
-            <el-table-column label="精算合計" min-width="140">
+            <el-table-column prop="caseNo" label="案件番号" min-width="150"></el-table-column>
+            <el-table-column prop="containerCount" label="本数" min-width="90"></el-table-column>
+            <el-table-column prop="workplace" label="作業場所" min-width="180"></el-table-column>
+            <el-table-column label="合計金額" min-width="140">
               <template #default="scope">{{ formatCurrencyYen(scope.row.total) }}</template>
             </el-table-column>
+            <el-table-column prop="outputStatus" label="請求書出力" min-width="120"></el-table-column>
           </el-table>
+
+          <div class="table-pagination">
+            <el-pagination
+              :current-page="currentPage"
+              :page-size="pageSize"
+              :page-sizes="[10, 20, 50]"
+              :total="total"
+              layout="total, sizes, prev, pager, next"
+              background
+              @size-change="handleSizeChange"
+              @current-change="handleCurrentChange"
+            />
+          </div>
         </div>
       `,
       setup() {
         const router = VueRouter.useRouter();
-        const filters = Vue.reactive({ customer: "", issueDate: "" });
+        const filters = Vue.reactive({ customer: "", issueDateFrom: "", issueDateTo: "" });
         const rows = Vue.ref(billingRowsSeed);
+        const filteredRows = Vue.computed(() => {
+          return rows.value.filter((row) => {
+            if (filters.customer && !row.customer.includes(filters.customer)) return false;
+            if (filters.issueDateFrom && row.issueDate < filters.issueDateFrom) return false;
+            if (filters.issueDateTo && row.issueDate > filters.issueDateTo) return false;
+            return true;
+          });
+        });
+        const pagination = useTablePagination(filteredRows);
         const goNew = () => router.push("/billing/edit");
-        const goEdit = (row) => router.push({ path: "/billing/edit", query: { billNo: row.billNo } });
-        const deleteBill = (row) => ElementPlus.ElMessage.warning("削除はモック動作です: " + row.billNo);
-        return { filters, rows, Search, Plus, goNew, goEdit, deleteBill, formatCurrencyYen };
+        const escapeHtml = (value) => String(value ?? "")
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;");
+        const exportBillingList = () => {
+          const exportRows = filteredRows.value;
+          if (!exportRows.length) {
+            ElementPlus.ElMessage.warning("出力対象がありません");
+            return;
+          }
+          const headerCells = ["案件番号", "本数", "深谷", "栃木県", "作業場所", "輸出", "輸入", "合計金額"]
+            .map((label) => "<th>" + label + "</th>")
+            .join("");
+          const bodyRows = exportRows.map((row, index) => {
+            return [
+              row.exportCaseNo || row.caseNo,
+              row.exportUnitCount ?? row.containerCount,
+              row.exportFukaya ?? "",
+              row.exportTochigi ?? "",
+              row.exportWorkplace || row.workplace || "",
+              row.exportOutbound || "",
+              row.exportInbound || "",
+              row.total
+            ].map((cell) => "<td>" + escapeHtml(cell) + "</td>").join("");
+          }).map((cells) => "<tr>" + cells + "</tr>").join("");
+          const html = `
+            <html>
+              <head>
+                <meta charset="UTF-8" />
+                <style>
+                  table { border-collapse: collapse; width: 100%; }
+                  th, td { border: 1px solid #9fb3c8; padding: 8px 10px; font-size: 12px; }
+                  th { background: #dfeaf6; font-weight: 700; }
+                  h2 { margin: 0 0 12px; font-size: 18px; }
+                  .greet { margin: 0 0 8px; font-size: 12px; }
+                </style>
+              </head>
+              <body>
+                <div class="greet">日高金属株式会社　　　御中</div>
+                <div class="greet">いつも大変お世話になっております。</div>
+                <h2>日高金属様 3月作業請求一覧表</h2>
+                <table>
+                  <thead><tr>${headerCells}</tr></thead>
+                  <tbody>${bodyRows}</tbody>
+                </table>
+              </body>
+            </html>
+          `;
+          const blob = new Blob(["\ufeff", html], { type: "application/vnd.ms-excel;charset=utf-8;" });
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement("a");
+          link.href = url;
+          link.download = "日高金属様_3月作業請求一覧表.xls";
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        };
+        return { filters, filteredRows, ...pagination, Search, Plus, goNew, exportBillingList, formatCurrencyYen };
       }
     };
 
@@ -2446,6 +2923,15 @@
               <div class="form-section">
                 <h3 class="form-section-title">基本情报</h3>
                 <div class="billing-form-grid">
+                  <el-form-item label="案件番号" class="full-row">
+                    <div class="case-picker-row">
+                      <el-input :model-value="selectedCase.caseNo" readonly></el-input>
+                      <el-button type="primary" @click="caseDialogVisible = true">案件選択</el-button>
+                    </div>
+                  </el-form-item>
+                  <el-form-item label="案件名">
+                    <el-input :model-value="selectedCase.caseName" readonly></el-input>
+                  </el-form-item>
                   <el-form-item label="請求先">
                     <div class="inline-pair">
                       <el-input v-model="form.customerCode"></el-input>
@@ -2520,7 +3006,14 @@
               <div class="form-section">
                 <h3 class="form-section-title">請求明細</h3>
                 <div class="finance-tools">
-                  <el-button type="primary" plain @click="addDetailRow">行追加</el-button>
+                  <div>
+                    <el-button type="primary" plain @click="addDetailRow">追加行</el-button>
+                    <el-select v-model="selectedBillingTemplate" placeholder="テンプレート選択" style="margin-left:12px;width:220px;" @change="applyBillingTemplate">
+                      <el-option label="テンプレート１" value="template1"></el-option>
+                      <el-option label="テンプレート２" value="template2"></el-option>
+                      <el-option label="テンプレート３" value="template3"></el-option>
+                    </el-select>
+                  </div>
                 </div>
                 <el-table :data="detailRows" border class="new-case-table">
                   <el-table-column label="No." width="60">
@@ -2528,17 +3021,6 @@
                   </el-table-column>
                   <el-table-column label="" width="56">
                     <template #default="scope"><el-checkbox v-model="scope.row.checked"></el-checkbox></template>
-                  </el-table-column>
-                  <el-table-column prop="caseNo" label="案件番号" width="230">
-                    <template #default="scope">
-                      <div class="detail-case-picker">
-                        <el-input v-model="scope.row.caseNo"></el-input>
-                        <el-button circle plain :icon="Search" @click="openCaseDialog(scope.$index)"></el-button>
-                      </div>
-                    </template>
-                  </el-table-column>
-                  <el-table-column prop="caseName" label="案件名" min-width="180">
-                    <template #default="scope"><el-input v-model="scope.row.caseName"></el-input></template>
                   </el-table-column>
                   <el-table-column prop="item" label="項目" min-width="120"><template #default="scope"><el-input v-model="scope.row.item"></el-input></template></el-table-column>
                   <el-table-column prop="itemJa" label="請求項目(日本語)" min-width="160"><template #default="scope"><el-input v-model="scope.row.itemJa"></el-input></template></el-table-column>
@@ -2591,26 +3073,12 @@
 
                 <div class="bottom-actions">
                   <el-button type="primary" @click="saveBill">保存</el-button>
+                  <el-button type="primary" plain @click="exportBillPdf">請求書出力</el-button>
                   <el-button type="primary" plain @click="cancelEdit">取消</el-button>
-                  <el-button type="primary" plain @click="templateVisible = true">請求書出力</el-button>
                 </div>
               </div>
             </el-form>
           </el-card>
-
-          <el-dialog v-model="templateVisible" title="模板选择" width="420px">
-            <div class="template-options">
-              <el-checkbox-group v-model="selectedTemplates">
-                <el-checkbox label="請求書1"></el-checkbox>
-                <el-checkbox label="請求書2"></el-checkbox>
-                <el-checkbox label="請求書3"></el-checkbox>
-                <el-checkbox label="請求書4"></el-checkbox>
-              </el-checkbox-group>
-            </div>
-            <template #footer>
-              <el-button type="primary" @click="printBill">出力</el-button>
-            </template>
-          </el-dialog>
 
           <el-dialog v-model="caseDialogVisible" title="案件選択" width="720px">
             <el-table :data="caseCandidates" border class="case-select-table" style="width:100%">
@@ -2621,7 +3089,7 @@
               <el-table-column prop="caseName" label="案件名" min-width="240"></el-table-column>
               <el-table-column label="操作" width="100" fixed="right">
                 <template #default="scope">
-                  <el-button type="primary" plain @click="selectDetailCase(scope.row)">選択</el-button>
+                  <el-button type="primary" plain @click="selectCase(scope.row)">選択</el-button>
                 </template>
               </el-table-column>
             </el-table>
@@ -2651,19 +3119,20 @@
           balanceAdjustment: "0"
         });
         const caseNameMap = {
-          B101ES26000001: "WAN HAI KOLKATA 3月案件",
-          B101ES26000002: "WAN HAI KOLKATA 追加案件",
-          B101ES26000003: "WAN HAI KOLKATA 継続案件"
+          "R20260301001": "WAN HAI KOLKATA 3月案件",
+          "R20260315002": "WAN HAI KOLKATA 追加案件",
+          "R20260320003": "WAN HAI KOLKATA 継続案件"
         };
         const caseCandidates = caseRows.map((item, index) => ({
           ...item,
           caseName: caseNameMap[item.caseNo] || ("案件" + String(index + 1).padStart(2, "0"))
         }));
-        const defaultDetailCase = caseCandidates[0] || { caseNo: "", caseName: "" };
+        const selectedCase = Vue.reactive({
+          caseNo: caseCandidates[0]?.caseNo || "",
+          caseName: caseCandidates[0]?.caseName || ""
+        });
         const makeDetailRow = (row = {}) => ({
           checked: false,
-          caseNo: row.caseNo || defaultDetailCase.caseNo,
-          caseName: row.caseName || caseNameMap[row.caseNo] || defaultDetailCase.caseName,
           item: row.item || "",
           itemJa: row.itemJa || "",
           taxType: row.taxType || "1",
@@ -2673,40 +3142,62 @@
           unitPrice: row.unitPrice ?? 0
         });
         const detailRows = Vue.ref(source.details.map(item => makeDetailRow(item)));
-        const templateVisible = Vue.ref(false);
-        const selectedTemplates = Vue.ref(["請求書1"]);
         const caseDialogVisible = Vue.ref(false);
-        const caseDialogTargetIndex = Vue.ref(-1);
         const totalSettlement = Vue.computed(() => detailRows.value.reduce((sum, row) => sum + calcBillingSettlement(row), 0));
         const totalTaxable = Vue.computed(() => detailRows.value.filter(row => row.taxType === "1").reduce((sum, row) => sum + calcBillingSettlement(row), 0));
         const totalExempt = Vue.computed(() => detailRows.value.filter(row => row.taxType === "2").reduce((sum, row) => sum + calcBillingSettlement(row), 0));
+        const selectedBillingTemplate = Vue.ref("");
+        const billingTemplates = {
+          template1: [
+            { item: "FREIGHT", itemJa: "海上運賃", taxType: "2", quantity: 1, currency: "JPY", rate: 1, unitPrice: 220000 },
+            { item: "THC", itemJa: "THC", taxType: "1", quantity: 1, currency: "JPY", rate: 1, unitPrice: 35000 },
+            { item: "DOC FEE", itemJa: "DOC FEE", taxType: "1", quantity: 1, currency: "JPY", rate: 1, unitPrice: 15000 },
+            { item: "SEAL FEE", itemJa: "SEAL FEE", taxType: "1", quantity: 1, currency: "JPY", rate: 1, unitPrice: 3000 },
+            { item: "CUSTOMS", itemJa: "通関料", taxType: "1", quantity: 1, currency: "JPY", rate: 1, unitPrice: 11800 },
+            { item: "CUSTOMS HANDLING", itemJa: "通関取扱手数料", taxType: "1", quantity: 1, currency: "JPY", rate: 1, unitPrice: 6000 },
+            { item: "DRAYAGE", itemJa: "拖車費", taxType: "1", quantity: 1, currency: "JPY", rate: 1, unitPrice: 0 }
+          ],
+          template2: [
+            { item: "CUSTOMS", itemJa: "通関料", taxType: "1", quantity: 1, currency: "JPY", rate: 1, unitPrice: 11800 },
+            { item: "CUSTOMS HANDLING", itemJa: "通関取扱手数料", taxType: "1", quantity: 1, currency: "JPY", rate: 1, unitPrice: 6000 }
+          ],
+          template3: [
+            { item: "DOC FEE", itemJa: "書類発行料", taxType: "1", quantity: 1, currency: "JPY", rate: 1, unitPrice: 15000 },
+            { item: "SEAL FEE", itemJa: "SEAL費", taxType: "1", quantity: 1, currency: "JPY", rate: 1, unitPrice: 3000 },
+            { item: "DELIVERY", itemJa: "納品手配料", taxType: "1", quantity: 1, currency: "JPY", rate: 1, unitPrice: 12000 }
+          ]
+        };
+        const applyBillingTemplate = (templateKey) => {
+          if (!templateKey) return;
+          const templateRows = billingTemplates[templateKey];
+          if (!templateRows) return;
+          detailRows.value = templateRows.map(item => makeDetailRow(item));
+          const templateNameMap = {
+            template1: "テンプレート１",
+            template2: "テンプレート２",
+            template3: "テンプレート３"
+          };
+          ElementPlus.ElMessage.success("テンプレート「" + templateNameMap[templateKey] + "」を適用しました");
+        };
         const addDetailRow = () => detailRows.value.push(makeDetailRow());
         const removeDetailRow = (index) => detailRows.value.splice(index, 1);
-        const openCaseDialog = (index) => {
-          caseDialogTargetIndex.value = index;
-          caseDialogVisible.value = true;
-        };
-        const selectDetailCase = (selected) => {
-          const row = detailRows.value[caseDialogTargetIndex.value];
-          if (!row) return;
-          row.caseNo = selected.caseNo;
-          row.caseName = selected.caseName;
+        const selectCase = (selected) => {
+          selectedCase.caseNo = selected.caseNo;
+          selectedCase.caseName = selected.caseName;
           caseDialogVisible.value = false;
         };
         const saveBill = () => {
           ElementPlus.ElMessage.success("保存成功");
           router.push("/billing");
         };
-        const cancelEdit = () => router.push("/billing");
-        const printBill = () => {
-          templateVisible.value = false;
-          ElementPlus.ElMessage.info("PDF作成中...");
+        const exportBillPdf = () => {
+          ElementPlus.ElMessage.success("PDF出力（Mock）: " + (selectedCase.caseNo || source.billNo));
         };
+        const cancelEdit = () => router.push("/billing");
         return {
           form,
+          selectedCase,
           detailRows,
-          templateVisible,
-          selectedTemplates,
           caseDialogVisible,
           caseCandidates,
           totalSettlement,
@@ -2714,11 +3205,12 @@
           totalExempt,
           addDetailRow,
           removeDetailRow,
-          openCaseDialog,
-          selectDetailCase,
+          selectCase,
           saveBill,
+          exportBillPdf,
           cancelEdit,
-          printBill,
+          selectedBillingTemplate,
+          applyBillingTemplate,
           Search,
           Delete,
           calcBillingRowAmount,
@@ -2732,7 +3224,7 @@
       dictionaryTypes: [
         { no: 1, code: "TAX", name: "税区分", type: "税区分", items: [{ no: 1, code: "1", name: "課税外税" }, { no: 2, code: "2", name: "免税" }, { no: 3, code: "3", name: "非課税" }] },
         { no: 2, code: "CUR", name: "通貨区分", type: "通貨区分", items: [{ no: 1, code: "JPY", name: "円" }, { no: 2, code: "USD", name: "ドル" }, { no: 3, code: "RMB", name: "元" }] },
-        { no: 3, code: "CASE_STATUS", name: "案件ステータス", type: "案件ステータス", items: [{ no: 1, code: "OPEN", name: "進行中" }, { no: 2, code: "HOLD", name: "保留" }, { no: 3, code: "DONE", name: "完了" }] }
+        { no: 3, code: "CASE_STATUS", name: "案件ステータス", type: "案件ステータス", items: [{ no: 1, code: "OPEN", name: "進行中" }, { no: 2, code: "HOLD", name: "保留" }, { no: 3, code: "DONE", name: "完了" }, { no: 4, code: "CLOSED", name: "終了" }] }
       ],
       partners: [
         { no: 1, code: "TR-1001", name: "日高金属株式会社", category: "顧客", active: true },
@@ -2768,25 +3260,42 @@
           <div class="page-head"><div><h2>取引先管理</h2><p>取引先マスタの登録・変更・状態管理を行います。</p></div></div>
           <div class="finance-search-panel">
             <div class="finance-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr));">
-              <div class="search-field"><label class="search-label">取引先コード</label><el-input v-model="filters.code"></el-input></div>
               <div class="search-field"><label class="search-label">取引先名</label><el-input v-model="filters.name"></el-input></div>
+              <div class="search-field"><label class="search-label">区分</label>
+                <el-select v-model="filters.category" clearable placeholder="全て">
+                  <el-option label="顧客" value="顧客"></el-option>
+                  <el-option label="仕入先" value="仕入先"></el-option>
+                  <el-option label="船社" value="船社"></el-option>
+                  <el-option label="ドレー会社" value="ドレー会社"></el-option>
+                </el-select>
+              </div>
             </div>
             <div class="search-actions">
               <el-button type="primary" :icon="Search">検索</el-button>
             </div>
           </div>
           <div class="case-toolbar"><el-button type="primary" :icon="Plus" @click="openNew">新規</el-button></div>
-          <el-table :data="filteredRows" border class="finance-list-table">
+          <el-table :data="pagedRows" border class="finance-list-table">
             <el-table-column prop="no" label="No." width="70"></el-table-column>
             <el-table-column label="操作" width="90"><template #default="scope"><a href="#" class="action-link action-edit" @click.prevent="editRow(scope.row)">変更</a></template></el-table-column>
-            <el-table-column prop="code" label="取引先コード" min-width="140"></el-table-column>
-            <el-table-column prop="name" label="取引先名" min-width="220"></el-table-column>
+            <el-table-column prop="name" label="取引先名" min-width="260"></el-table-column>
             <el-table-column prop="category" label="区分" width="140"></el-table-column>
             <el-table-column label="ステータス" width="110"><template #default="scope"><el-switch v-model="scope.row.active"></el-switch></template></el-table-column>
           </el-table>
+          <div class="table-pagination">
+            <el-pagination
+              :current-page="currentPage"
+              :page-size="pageSize"
+              :page-sizes="[10, 20, 50]"
+              :total="total"
+              layout="total, sizes, prev, pager, next"
+              background
+              @size-change="handleSizeChange"
+              @current-change="handleCurrentChange"
+            />
+          </div>
           <el-dialog v-model="visible" title="取引先管理" width="520px">
             <el-form label-width="110px">
-              <el-form-item label="取引先コード"><el-input v-model="editing.code"></el-input></el-form-item>
               <el-form-item label="取引先名"><el-input v-model="editing.name"></el-input></el-form-item>
               <el-form-item label="区分">
                 <el-select v-model="editing.category">
@@ -2804,16 +3313,22 @@
       `,
       setup() {
         const rows = masterStore.partners;
-        const filters = Vue.reactive({ code: "", name: "" });
+        const filters = Vue.reactive({ name: "", category: "" });
         const filteredRows = Vue.computed(() => rows.filter(row =>
-          (!filters.code || row.code.toLowerCase().includes(filters.code.toLowerCase())) &&
-          (!filters.name || row.name.toLowerCase().includes(filters.name.toLowerCase()))
+          (!filters.name || row.name.toLowerCase().includes(filters.name.toLowerCase())) &&
+          (!filters.category || row.category === filters.category)
         ));
+        const pagination = useTablePagination(filteredRows);
         const visible = Vue.ref(false);
         const editing = Vue.reactive({ no: null, code: "", name: "", category: "顧客", active: true });
         const openNew = () => { Object.assign(editing, { no: null, code: "", name: "", category: "顧客", active: true }); visible.value = true; };
         const editRow = (row) => { Object.assign(editing, JSON.parse(JSON.stringify(row))); visible.value = true; };
         const save = () => {
+          const duplicate = rows.find(item => item.name === editing.name && item.no !== editing.no);
+          if (duplicate) {
+            ElementPlus.ElMessage.warning("同名の取引先が既に存在します: " + editing.name);
+            return;
+          }
           if (editing.no) {
             const index = rows.findIndex(item => item.no === editing.no);
             rows[index] = { ...editing };
@@ -2822,7 +3337,7 @@
           }
           visible.value = false;
         };
-        return { rows, filters, filteredRows, visible, editing, Search, Plus, openNew, editRow, save };
+        return { rows, filters, filteredRows, ...pagination, visible, editing, Search, Plus, openNew, editRow, save };
       }
     };
 
@@ -2840,13 +3355,25 @@
             </div>
           </div>
           <div class="case-toolbar"><el-button type="primary" :icon="Plus" @click="openNew">新規</el-button></div>
-          <el-table :data="filteredRows" border class="finance-list-table">
+          <el-table :data="pagedRows" border class="finance-list-table">
             <el-table-column prop="no" label="No." width="70"></el-table-column>
             <el-table-column label="操作" width="90"><template #default="scope"><a href="#" class="action-link action-edit" @click.prevent="editRow(scope.row)">変更</a></template></el-table-column>
             <el-table-column prop="code" label="請求先コード" min-width="140"></el-table-column>
             <el-table-column prop="name" label="請求先名" min-width="220"></el-table-column>
             <el-table-column prop="note" label="備考" min-width="160"></el-table-column>
           </el-table>
+          <div class="table-pagination">
+            <el-pagination
+              :current-page="currentPage"
+              :page-size="pageSize"
+              :page-sizes="[10, 20, 50]"
+              :total="total"
+              layout="total, sizes, prev, pager, next"
+              background
+              @size-change="handleSizeChange"
+              @current-change="handleCurrentChange"
+            />
+          </div>
           <el-dialog v-model="visible" title="請求先管理" width="520px">
             <el-form label-width="110px">
               <el-form-item label="請求先コード"><el-input v-model="editing.code"></el-input></el-form-item>
@@ -2864,6 +3391,7 @@
           (!filters.code || row.code.toLowerCase().includes(filters.code.toLowerCase())) &&
           (!filters.name || row.name.toLowerCase().includes(filters.name.toLowerCase()))
         ));
+        const pagination = useTablePagination(filteredRows);
         const visible = Vue.ref(false);
         const editing = Vue.reactive({ no: null, code: "", name: "", note: "" });
         const openNew = () => { Object.assign(editing, { no: null, code: "", name: "", note: "" }); visible.value = true; };
@@ -2873,7 +3401,7 @@
           else rows.push({ ...editing, no: rows.length + 1 });
           visible.value = false;
         };
-        return { rows, filters, filteredRows, visible, editing, Search, Plus, openNew, editRow, save };
+        return { rows, filters, filteredRows, ...pagination, visible, editing, Search, Plus, openNew, editRow, save };
       }
     };
 
@@ -2891,7 +3419,7 @@
             </div>
           </div>
           <div class="case-toolbar"><el-button type="primary" :icon="Plus" @click="openNew">新規</el-button></div>
-          <el-table :data="filteredRows" border class="finance-list-table">
+          <el-table :data="pagedRows" border class="finance-list-table">
             <el-table-column prop="no" label="No." width="70"></el-table-column>
             <el-table-column label="操作" width="90"><template #default="scope"><a href="#" class="action-link action-edit" @click.prevent="editRow(scope.row)">変更</a></template></el-table-column>
             <el-table-column prop="code" label="項目コード" width="120"></el-table-column>
@@ -2899,6 +3427,18 @@
             <el-table-column label="デフォルト税区分" width="150"><template #default="scope">{{ taxName(scope.row.taxType) }}</template></el-table-column>
             <el-table-column prop="unitPrice" label="デフォルト単価" width="140"></el-table-column>
           </el-table>
+          <div class="table-pagination">
+            <el-pagination
+              :current-page="currentPage"
+              :page-size="pageSize"
+              :page-sizes="[10, 20, 50]"
+              :total="total"
+              layout="total, sizes, prev, pager, next"
+              background
+              @size-change="handleSizeChange"
+              @current-change="handleCurrentChange"
+            />
+          </div>
           <el-dialog v-model="visible" title="請求項目管理" width="560px">
             <el-form label-width="120px">
               <el-form-item label="項目コード"><el-input v-model="editing.code"></el-input></el-form-item>
@@ -2921,6 +3461,7 @@
           (!filters.code || row.code.toLowerCase().includes(filters.code.toLowerCase())) &&
           (!filters.name || row.nameJa.toLowerCase().includes(filters.name.toLowerCase()))
         ));
+        const pagination = useTablePagination(filteredRows);
         const visible = Vue.ref(false);
         const editing = Vue.reactive({ no: null, code: "", nameJa: "", taxType: "1", unitPrice: "" });
         const taxOptions = useTaxOptions();
@@ -2935,7 +3476,7 @@
           else rows.push({ ...editing, no: rows.length + 1 });
           visible.value = false;
         };
-        return { rows, filters, filteredRows, visible, editing, taxOptions, taxName, Search, Plus, openNew, editRow, save };
+        return { rows, filters, filteredRows, ...pagination, visible, editing, taxOptions, taxName, Search, Plus, openNew, editRow, save };
       }
     };
 
@@ -2953,7 +3494,7 @@
             </div>
           </div>
           <div class="case-toolbar"><el-button type="primary" :icon="Plus" @click="openNew">新規</el-button></div>
-          <el-table :data="filteredRows" border class="finance-list-table">
+          <el-table :data="pagedRows" border class="finance-list-table">
             <el-table-column prop="no" label="No." width="70"></el-table-column>
             <el-table-column label="操作" width="90"><template #default="scope"><a href="#" class="action-link action-edit" @click.prevent="editRow(scope.row)">変更</a></template></el-table-column>
             <el-table-column prop="code" label="区分コード" min-width="150"></el-table-column>
@@ -2962,6 +3503,18 @@
               <template #default="scope">{{ formatItems(scope.row.items) }}</template>
             </el-table-column>
           </el-table>
+          <div class="table-pagination">
+            <el-pagination
+              :current-page="currentPage"
+              :page-size="pageSize"
+              :page-sizes="[10, 20, 50]"
+              :total="total"
+              layout="total, sizes, prev, pager, next"
+              background
+              @size-change="handleSizeChange"
+              @current-change="handleCurrentChange"
+            />
+          </div>
           <el-dialog v-model="visible" title="区分マスタ管理" width="760px">
             <el-form label-width="110px">
               <el-form-item label="区分コード"><el-input v-model="editing.code"></el-input></el-form-item>
@@ -2969,7 +3522,7 @@
             </el-form>
             <div class="finance-tools">
               <div class="search-label">区分項目</div>
-              <el-button type="primary" plain @click="appendItem">行追加</el-button>
+              <el-button type="primary" plain @click="appendItem">追加行</el-button>
             </div>
             <el-table :data="editing.items" border class="finance-list-table">
               <el-table-column prop="no" label="No." width="70">
@@ -2998,6 +3551,7 @@
           (!filters.code || row.code.toLowerCase().includes(filters.code.toLowerCase())) &&
           (!filters.name || row.name.toLowerCase().includes(filters.name.toLowerCase()))
         ));
+        const pagination = useTablePagination(filteredRows);
         const visible = Vue.ref(false);
         const makeItem = (item = {}, index = 0) => ({
           no: index + 1,
@@ -3037,7 +3591,7 @@
           else rows.push(payload);
           visible.value = false;
         };
-        return { filters, filteredRows, visible, editing, Search, Plus, Delete, openNew, editRow, appendItem, removeItem, formatItems, save };
+        return { filters, filteredRows, ...pagination, visible, editing, Search, Plus, Delete, openNew, editRow, appendItem, removeItem, formatItems, save };
       }
     };
 
@@ -3055,13 +3609,25 @@
             </div>
           </div>
           <div class="case-toolbar"><el-button type="primary" :icon="Plus" @click="openNew">新規</el-button></div>
-          <el-table :data="filteredRows" border class="finance-list-table">
+          <el-table :data="pagedRows" border class="finance-list-table">
             <el-table-column prop="no" label="No." width="70"></el-table-column>
             <el-table-column label="操作" width="90"><template #default="scope"><a href="#" class="action-link action-edit" @click.prevent="editRow(scope.row)">変更</a></template></el-table-column>
             <el-table-column prop="code" label="場所コード" width="140"></el-table-column>
             <el-table-column prop="city" label="港・都市名(英)" min-width="180"></el-table-column>
             <el-table-column prop="country" label="国コード" width="120"></el-table-column>
           </el-table>
+          <div class="table-pagination">
+            <el-pagination
+              :current-page="currentPage"
+              :page-size="pageSize"
+              :page-sizes="[10, 20, 50]"
+              :total="total"
+              layout="total, sizes, prev, pager, next"
+              background
+              @size-change="handleSizeChange"
+              @current-change="handleCurrentChange"
+            />
+          </div>
           <el-dialog v-model="visible" title="港・場所マスタ" width="520px">
             <el-form label-width="110px">
               <el-form-item label="場所コード"><el-input v-model="editing.code"></el-input></el-form-item>
@@ -3079,6 +3645,7 @@
           (!filters.code || row.code.toLowerCase().includes(filters.code.toLowerCase())) &&
           (!filters.name || row.city.toLowerCase().includes(filters.name.toLowerCase()))
         ));
+        const pagination = useTablePagination(filteredRows);
         const visible = Vue.ref(false);
         const editing = Vue.reactive({ no: null, code: "", city: "", country: "" });
         const openNew = () => { Object.assign(editing, { no: null, code: "", city: "", country: "" }); visible.value = true; };
@@ -3088,7 +3655,7 @@
           else rows.push({ ...editing, no: rows.length + 1 });
           visible.value = false;
         };
-        return { rows, filters, filteredRows, visible, editing, Search, Plus, openNew, editRow, save };
+        return { rows, filters, filteredRows, ...pagination, visible, editing, Search, Plus, openNew, editRow, save };
       }
     };
 
@@ -3106,13 +3673,25 @@
             </div>
           </div>
           <div class="case-toolbar"><el-button type="primary" :icon="Plus" @click="openNew">新規</el-button></div>
-          <el-table :data="filteredRows" border class="finance-list-table">
+          <el-table :data="pagedRows" border class="finance-list-table">
             <el-table-column prop="no" label="No." width="70"></el-table-column>
             <el-table-column label="操作" width="90"><template #default="scope"><a href="#" class="action-link action-edit" @click.prevent="editRow(scope.row)">変更</a></template></el-table-column>
             <el-table-column prop="imo" label="コールサイン/IMO" min-width="150"></el-table-column>
             <el-table-column prop="vesselName" label="船名" min-width="200"></el-table-column>
             <el-table-column prop="shippingCode" label="船社コード" width="120"></el-table-column>
           </el-table>
+          <div class="table-pagination">
+            <el-pagination
+              :current-page="currentPage"
+              :page-size="pageSize"
+              :page-sizes="[10, 20, 50]"
+              :total="total"
+              layout="total, sizes, prev, pager, next"
+              background
+              @size-change="handleSizeChange"
+              @current-change="handleCurrentChange"
+            />
+          </div>
           <el-dialog v-model="visible" title="船名マスタ" width="520px">
             <el-form label-width="120px">
               <el-form-item label="コールサイン/IMO"><el-input v-model="editing.imo"></el-input></el-form-item>
@@ -3130,6 +3709,7 @@
           (!filters.code || row.imo.toLowerCase().includes(filters.code.toLowerCase()) || row.shippingCode.toLowerCase().includes(filters.code.toLowerCase())) &&
           (!filters.name || row.vesselName.toLowerCase().includes(filters.name.toLowerCase()))
         ));
+        const pagination = useTablePagination(filteredRows);
         const visible = Vue.ref(false);
         const editing = Vue.reactive({ no: null, imo: "", vesselName: "", shippingCode: "" });
         const openNew = () => { Object.assign(editing, { no: null, imo: "", vesselName: "", shippingCode: "" }); visible.value = true; };
@@ -3139,7 +3719,270 @@
           else rows.push({ ...editing, no: rows.length + 1 });
           visible.value = false;
         };
-        return { rows, filters, filteredRows, visible, editing, Search, Plus, openNew, editRow, save };
+        return { rows, filters, filteredRows, ...pagination, visible, editing, Search, Plus, openNew, editRow, save };
+      }
+    };
+
+    const invoiceTemplateRows = Vue.reactive([
+      {
+        no: 1,
+        templateCode: "BT-STD-001",
+        name: "輸出標準テンプレート",
+        category: "標準",
+        customerCode: "",
+        customerName: "共通",
+        criterion: "B/L(AWB)DA",
+        settlementCurrency: "JPY",
+        taxRate: "10",
+        itemCount: "7項目",
+        details: [
+          { item: "FREIGHT", itemJa: "海上運賃", taxType: "2", quantity: 1, currency: "JPY", rate: 1, unitPrice: 220000 },
+          { item: "THC", itemJa: "THC", taxType: "1", quantity: 1, currency: "JPY", rate: 1, unitPrice: 35000 },
+          { item: "DOC FEE", itemJa: "DOC FEE", taxType: "1", quantity: 1, currency: "JPY", rate: 1, unitPrice: 15000 },
+          { item: "SEAL FEE", itemJa: "SEAL FEE", taxType: "1", quantity: 1, currency: "JPY", rate: 1, unitPrice: 3000 },
+          { item: "CUSTOMS", itemJa: "通関料", taxType: "1", quantity: 1, currency: "JPY", rate: 1, unitPrice: 11800 },
+          { item: "CUSTOMS HANDLING", itemJa: "通関取扱手数料", taxType: "1", quantity: 1, currency: "JPY", rate: 1, unitPrice: 6000 },
+          { item: "DRAYAGE", itemJa: "拖車費", taxType: "1", quantity: 1, currency: "JPY", rate: 1, unitPrice: 0 }
+        ],
+        updatedAt: "2026/04/01",
+        status: "有効"
+      },
+      {
+        no: 2,
+        templateCode: "BT-CUS-001",
+        name: "通関簡易テンプレート",
+        category: "通関",
+        customerCode: "",
+        customerName: "共通",
+        criterion: "B/L(AWB)DA",
+        settlementCurrency: "JPY",
+        taxRate: "10",
+        itemCount: "2項目",
+        details: [
+          { item: "CUSTOMS", itemJa: "通関料", taxType: "1", quantity: 1, currency: "JPY", rate: 1, unitPrice: 11800 },
+          { item: "CUSTOMS HANDLING", itemJa: "通関取扱手数料", taxType: "1", quantity: 1, currency: "JPY", rate: 1, unitPrice: 6000 }
+        ],
+        updatedAt: "2026/03/15",
+        status: "有効"
+      },
+      {
+        no: 3,
+        templateCode: "BT-DOC-001",
+        name: "書類作成テンプレート",
+        category: "書類",
+        customerCode: "",
+        customerName: "共通",
+        criterion: "ETD基準",
+        settlementCurrency: "JPY",
+        taxRate: "10",
+        itemCount: "3項目",
+        details: [
+          { item: "DOC FEE", itemJa: "書類発行料", taxType: "1", quantity: 1, currency: "JPY", rate: 1, unitPrice: 15000 },
+          { item: "SEAL FEE", itemJa: "SEAL費", taxType: "1", quantity: 1, currency: "JPY", rate: 1, unitPrice: 3000 },
+          { item: "DELIVERY", itemJa: "納品手配料", taxType: "1", quantity: 1, currency: "JPY", rate: 1, unitPrice: 12000 }
+        ],
+        updatedAt: "2026/02/20",
+        status: "有効"
+      }
+    ]);
+
+    const InvoiceTemplatePage = {
+      template: `
+        <div class="page-card">
+          <div class="page-head"><div><h2>請求書テンプレート管理</h2><p>請求新規で選択したときに、請求明細へ自動展開するテンプレートを管理します。</p></div></div>
+          <div class="finance-search-panel">
+            <div class="finance-grid" style="grid-template-columns: repeat(3, minmax(0, 1fr));">
+              <div class="search-field"><label class="search-label">テンプレートコード</label><el-input v-model="filters.code"></el-input></div>
+              <div class="search-field"><label class="search-label">テンプレート名</label><el-input v-model="filters.name"></el-input></div>
+              <div class="search-field">
+                <label class="search-label">テンプレート区分</label>
+                <el-select v-model="filters.category" clearable>
+                  <el-option label="標準" value="標準"></el-option>
+                  <el-option label="通関" value="通関"></el-option>
+                  <el-option label="書類" value="書類"></el-option>
+                </el-select>
+              </div>
+            </div>
+            <div class="search-actions">
+              <el-button type="primary" :icon="Search">検索</el-button>
+            </div>
+          </div>
+          <div class="case-toolbar"><el-button type="primary" :icon="Plus" @click="openNew">新規</el-button></div>
+          <el-table :data="pagedRows" border class="finance-list-table">
+            <el-table-column prop="no" label="No." width="70"></el-table-column>
+            <el-table-column label="操作" width="140">
+              <template #default="scope">
+                <div style="display:flex; gap:8px;">
+                  <a href="#" class="action-link action-edit" @click.prevent="editRow(scope.row)">変更</a>
+                  <a href="#" class="action-link action-delete" @click.prevent="removeTemplateRow(scope.row)">削除</a>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column prop="templateCode" label="テンプレートコード" width="160"></el-table-column>
+            <el-table-column prop="name" label="テンプレート名" min-width="260"></el-table-column>
+            <el-table-column prop="updatedAt" label="最終更新日" width="140"></el-table-column>
+          </el-table>
+          <div class="table-pagination">
+            <el-pagination
+              :current-page="currentPage"
+              :page-size="pageSize"
+              :page-sizes="[10, 20, 50]"
+              :total="total"
+              layout="total, sizes, prev, pager, next"
+              background
+              @size-change="handleSizeChange"
+              @current-change="handleCurrentChange"
+            />
+          </div>
+          <el-dialog v-model="visible" title="請求書テンプレート管理" width="1120px">
+            <el-form label-width="130px">
+              <div class="billing-form-grid">
+                <el-form-item label="テンプレートコード"><el-input v-model="editing.templateCode"></el-input></el-form-item>
+                <el-form-item label="テンプレート名"><el-input v-model="editing.name"></el-input></el-form-item>
+              </div>
+            </el-form>
+            <div class="form-section no-top-line">
+              <div class="page-head" style="margin-bottom: 12px;">
+                <div>
+                  <h3 class="form-section-title">テンプレート明細</h3>
+                  <p>請求新規で区分選択したときに、この明細が自動で展開されます。</p>
+                </div>
+                <el-button type="primary" plain @click="addTemplateDetailRow">追加行</el-button>
+              </div>
+              <el-table :data="editing.details" border class="new-case-table">
+                <el-table-column label="No." width="60">
+                  <template #default="scope">{{ scope.$index + 1 }}</template>
+                </el-table-column>
+                <el-table-column prop="item" label="項目" min-width="130">
+                  <template #default="scope"><el-input v-model="scope.row.item"></el-input></template>
+                </el-table-column>
+                <el-table-column prop="itemJa" label="請求項目(日本語)" min-width="180">
+                  <template #default="scope"><el-input v-model="scope.row.itemJa"></el-input></template>
+                </el-table-column>
+                <el-table-column prop="taxType" label="税区分" width="140">
+                  <template #default="scope">
+                    <el-select v-model="scope.row.taxType">
+                      <el-option label="1:課税外税" value="1"></el-option>
+                      <el-option label="2:免税" value="2"></el-option>
+                    </el-select>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="quantity" label="数量" width="100">
+                  <template #default="scope"><el-input v-model="scope.row.quantity"></el-input></template>
+                </el-table-column>
+                <el-table-column prop="currency" label="通貨" width="100">
+                  <template #default="scope">
+                    <el-select v-model="scope.row.currency">
+                      <el-option label="JPY" value="JPY"></el-option>
+                      <el-option label="USD" value="USD"></el-option>
+                      <el-option label="RMB" value="RMB"></el-option>
+                    </el-select>
+                  </template>
+                </el-table-column>
+                <el-table-column prop="rate" label="レート" width="110">
+                  <template #default="scope"><el-input v-model="scope.row.rate"></el-input></template>
+                </el-table-column>
+                <el-table-column prop="unitPrice" label="単価" width="120">
+                  <template #default="scope"><el-input v-model="scope.row.unitPrice"></el-input></template>
+                </el-table-column>
+                <el-table-column label="精算金額" width="130">
+                  <template #default="scope">{{ formatCurrencyYen(calcBillingSettlement(scope.row)) }}</template>
+                </el-table-column>
+                <el-table-column label="削除" width="80" fixed="right">
+                  <template #default="scope">
+                    <el-button circle type="danger" plain :icon="Delete" @click="removeTemplateDetailRow(scope.$index)"></el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </div>
+            <template #footer><el-button type="primary" @click="save">保存</el-button></template>
+          </el-dialog>
+        </div>
+      `,
+      setup() {
+        const rows = invoiceTemplateRows;
+        const makeTemplateDetailRow = (row = {}) => ({
+          item: row.item || "",
+          itemJa: row.itemJa || "",
+          taxType: row.taxType || "1",
+          quantity: row.quantity ?? 1,
+          currency: row.currency || "JPY",
+          rate: row.rate ?? 1,
+          unitPrice: row.unitPrice ?? 0
+        });
+        const calcItemCount = (details = []) => `${details.length}項目`;
+        const filters = Vue.reactive({ code: "", name: "", category: "" });
+        const filteredRows = Vue.computed(() => rows.filter(row =>
+          (!filters.code || row.templateCode.toLowerCase().includes(filters.code.toLowerCase())) &&
+          (!filters.category || row.category === filters.category) &&
+          (!filters.name || row.name.toLowerCase().includes(filters.name.toLowerCase()))
+        ));
+        const pagination = useTablePagination(filteredRows);
+        const visible = Vue.ref(false);
+        const editing = Vue.reactive({
+          no: null,
+          templateCode: "",
+          name: "",
+          details: []
+        });
+        const resetEditing = (payload = {}) => {
+          Object.assign(editing, {
+            no: payload.no ?? null,
+            templateCode: payload.templateCode ?? "",
+            name: payload.name ?? "",
+            details: (payload.details || []).map(item => makeTemplateDetailRow(item))
+          });
+        };
+        const openNew = () => {
+          resetEditing({
+            details: [makeTemplateDetailRow()]
+          });
+          visible.value = true;
+        };
+        const editRow = (row) => {
+          resetEditing(JSON.parse(JSON.stringify(row)));
+          visible.value = true;
+        };
+        const addTemplateDetailRow = () => editing.details.push(makeTemplateDetailRow());
+        const removeTemplateDetailRow = (index) => editing.details.splice(index, 1);
+        const removeTemplateRow = (row) => {
+          const targetIndex = rows.findIndex(item => item.no === row.no);
+          if (targetIndex >= 0) rows.splice(targetIndex, 1);
+          rows.forEach((item, itemIndex) => { item.no = itemIndex + 1; });
+        };
+        const save = () => {
+          const nextRow = {
+            ...JSON.parse(JSON.stringify(editing)),
+            itemCount: calcItemCount(editing.details),
+            updatedAt: new Date().toISOString().slice(0, 10).replace(/-/g, "/")
+          };
+          if (editing.no) {
+            const index = rows.findIndex(item => item.no === editing.no);
+            rows[index] = nextRow;
+          } else {
+            rows.push({ ...nextRow, no: rows.length + 1 });
+          }
+          visible.value = false;
+        };
+        return {
+          rows,
+          filters,
+          filteredRows,
+          ...pagination,
+          visible,
+          editing,
+          Search,
+          Plus,
+          Delete,
+          openNew,
+          editRow,
+          removeTemplateRow,
+          addTemplateDetailRow,
+          removeTemplateDetailRow,
+          save,
+          formatCurrencyYen,
+          calcBillingSettlement
+        };
       }
     };
 
@@ -3178,7 +4021,7 @@
 
           <div class="case-toolbar"><el-button type="primary" :icon="Plus" @click="openNew">新規</el-button></div>
 
-          <el-table :data="filteredRows" border class="finance-list-table" style="width: 100%">
+          <el-table :data="pagedRows" border class="finance-list-table" style="width: 100%">
             <el-table-column prop="no" label="No." width="70"></el-table-column>
             <el-table-column label="操作" min-width="150">
               <template #default="scope">
@@ -3202,6 +4045,19 @@
               </template>
             </el-table-column>
           </el-table>
+
+          <div class="table-pagination">
+            <el-pagination
+              :current-page="currentPage"
+              :page-size="pageSize"
+              :page-sizes="[10, 20, 50]"
+              :total="total"
+              layout="total, sizes, prev, pager, next"
+              background
+              @size-change="handleSizeChange"
+              @current-change="handleCurrentChange"
+            />
+          </div>
         </div>
       `,
       setup() {
@@ -3212,6 +4068,7 @@
           (!filters.username || row.username.toLowerCase().includes(filters.username.toLowerCase())) &&
           (!filters.role || row.role === filters.role)
         ));
+        const pagination = useTablePagination(filteredRows);
         const openNew = () => router.push("/user-management/new");
         const editRow = (row) => router.push({ path: "/user-management/new", query: { no: row.no } });
         const resetPassword = async (row) => {
@@ -3227,7 +4084,7 @@
           if (targetIndex >= 0) rows.splice(targetIndex, 1);
           rows.forEach((item, itemIndex) => { item.no = itemIndex + 1; });
         };
-        return { filters, filteredRows, Search, Plus, Delete, openNew, editRow, resetPassword, removeRow };
+        return { filters, filteredRows, ...pagination, Search, Plus, Delete, openNew, editRow, resetPassword, removeRow };
       }
     };
 
@@ -3303,6 +4160,1241 @@
       }
     };
 
+// ═══════════════════════════════════════════════════════════════════════════════
+// モジュール1: 通関管理
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ---------- 通関管理一覧 ----------
+const CustomsListPage = {
+  template: `
+    <div class="page-card">
+      <div class="page-head">
+        <div>
+          <h2>通関一覧</h2>
+          <p>案件に紐づくInvoice・Packing Listの作成・管理を行います。</p>
+        </div>
+      </div>
+
+      <div class="finance-search-panel">
+        <div class="finance-grid">
+          <div class="search-field">
+            <label class="search-label">案件番号</label>
+            <el-input v-model="filters.caseNo" placeholder="案件番号で検索"></el-input>
+          </div>
+          <div class="search-field">
+            <label class="search-label">取引先名</label>
+            <el-input v-model="filters.clientName" placeholder="取引先名で検索"></el-input>
+          </div>
+          <div class="search-field">
+            <label class="search-label">ステータス</label>
+            <el-select v-model="filters.status" clearable placeholder="全て">
+              <el-option label="発行済" value="発行済"></el-option>
+              <el-option label="未発行" value="未発行"></el-option>
+            </el-select>
+          </div>
+        </div>
+        <div class="search-actions">
+          <el-button type="primary" :icon="Search">検索</el-button>
+        </div>
+      </div>
+
+      <el-table :data="pagedRows" stripe border style="width: 100%">
+        <el-table-column label="No." width="60">
+          <template #default="scope">{{ scope.$index + 1 }}</template>
+        </el-table-column>
+        <el-table-column label="操作" width="120">
+          <template #default="scope">
+            <div class="operation-links">
+              <a class="action-link action-view" @click.prevent="goOutput(scope.row)">出力</a>
+              <a class="action-link action-view" @click.prevent="goDetail(scope.row)">詳細</a>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column prop="caseNo" label="案件番号" min-width="160"></el-table-column>
+        <el-table-column prop="clientName" label="取引先" min-width="220"></el-table-column>
+        <el-table-column prop="status" label="ステータス" width="110">
+          <template #default="scope">
+            <el-tag :type="scope.row.status === '発行済' ? 'success' : scope.row.status === '再発行' ? 'warning' : 'info'" size="small">{{ scope.row.status }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="issuedAt" label="発行日" width="120"></el-table-column>
+      </el-table>
+
+      <div class="table-pagination">
+        <el-pagination
+          :current-page="currentPage"
+          :page-size="pageSize"
+          :page-sizes="[10, 20, 50]"
+          :total="total"
+          :pager-count="7"
+          layout="total, sizes, prev, pager, next, jumper"
+          background
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </div>
+    </div>
+  `,
+  setup() {
+    const router = VueRouter.useRouter();
+    const filters = Vue.reactive({ caseNo: "", clientName: "", status: "" });
+    const statusMap = {
+      R20260301001: { status: "発行済", issuedAt: "2026/04/05", clientName: "岩并化成株式会社" },
+      R20260315002: { status: "未発行", issuedAt: "", clientName: "東海物流株式会社" },
+      R20260320003: { status: "再発行", issuedAt: "2026/04/12", clientName: "明川科技" }
+    };
+    const rows = Vue.ref(
+      Object.values(customsCaseDetails).map((item) => ({
+        caseNo: item.caseNo,
+        clientName: (statusMap[item.caseNo] && statusMap[item.caseNo].clientName) || item.caseName || "",
+        status: (statusMap[item.caseNo] && statusMap[item.caseNo].status) || "未発行",
+        issuedAt: (statusMap[item.caseNo] && statusMap[item.caseNo].issuedAt) || ""
+      }))
+    );
+    const filteredRows = Vue.computed(() => {
+      return rows.value.filter(r => {
+        if (filters.caseNo && !r.caseNo.includes(filters.caseNo)) return false;
+        if (filters.clientName && !r.clientName.includes(filters.clientName)) return false;
+        if (filters.status && r.status !== filters.status) return false;
+        return true;
+      });
+    });
+    const pagination = useTablePagination(filteredRows);
+    const goOutput = (row) => router.push({ path: "/customs/create", query: { caseNo: row.caseNo, from: "/cases/customs" } });
+    const goDetail = (row) => router.push({ path: "/customs/create", query: { caseNo: row.caseNo, readonly: "1", from: "/cases/customs" } });
+    return { filters, filteredRows, ...pagination, goOutput, goDetail, Search };
+  }
+};
+
+// ---------- 通関書類作成 ----------
+const CustomsNewPage = {
+  template: `
+    <div>
+      <el-card class="form-card">
+        <div class="page-head">
+          <div>
+            <h2>通関書類作成</h2>
+            <p>Invoice、Packing List、B/L を1画面でまとめて作成します。</p>
+          </div>
+        </div>
+
+        <el-form label-width="180px">
+          <div class="form-section">
+            <div class="business-form-grid plain-form-grid">
+              <el-form-item label="案件番号" class="full-row">
+                <el-input v-model="selectedCaseNo" readonly placeholder="案件を選択してください"></el-input>
+              </el-form-item>
+            </div>
+          </div>
+
+          <div v-if="!activeCase" class="table-note" style="padding: 12px 0 20px;">
+            案件未選択です。案件を選択すると、Invoice と B/L の関連情報を自動入力します。
+          </div>
+
+          <template v-if="activeCase">
+          <div class="form-section">
+            <div class="form-section-head">
+              <h3 class="form-section-title">基本情報</h3>
+              <el-button text class="section-toggle-btn" @click="basicCollapsed = !basicCollapsed">
+                <el-icon><component :is="basicCollapsed ? Expand : Fold" /></el-icon>
+              </el-button>
+            </div>
+            <div v-show="!basicCollapsed" class="business-form-grid" :class="{ 'readonly-block': isReadonly }">
+              <el-form-item label="INV/NO.（案件番号）">
+                <el-input v-model="invoiceForm.invNo"></el-input>
+              </el-form-item>
+              <el-form-item label="DATE">
+                <el-date-picker v-model="invoiceForm.invDate" type="date" format="YYYY/MM/DD" value-format="YYYY/MM/DD" style="width:100%;"></el-date-picker>
+              </el-form-item>
+              <el-form-item label="Shipper" class="full-row">
+                <el-input v-model="invoiceForm.shipper" type="textarea" :rows="3"></el-input>
+              </el-form-item>
+              <el-form-item label="Messers.（Consignee）" class="full-row">
+                <el-input v-model="invoiceForm.consignee" type="textarea" :rows="4"></el-input>
+              </el-form-item>
+              <el-form-item label="Shipped per（船名）">
+                <div class="inline-pair">
+                  <el-input v-model="invoiceForm.vesselName" placeholder="船名"></el-input>
+                  <el-input v-model="invoiceForm.voyNo" placeholder="VOY No."></el-input>
+                </div>
+              </el-form-item>
+              <el-form-item label="On or about（ETD）">
+                <el-date-picker v-model="invoiceForm.etd" type="date" format="YYYY/MM/DD" value-format="YYYY/MM/DD" style="width:100%;"></el-date-picker>
+              </el-form-item>
+              <el-form-item label="From（船積港）">
+                <el-input v-model="invoiceForm.loadingPort"></el-input>
+              </el-form-item>
+              <el-form-item label="To（仕向地）">
+                <el-input v-model="invoiceForm.destination"></el-input>
+              </el-form-item>
+            </div>
+
+          </div>
+
+          <div class="form-section no-top-line">
+            <div class="form-section-head">
+              <h3 class="form-section-title">その他</h3>
+              <el-button text class="section-toggle-btn" @click="otherCollapsed = !otherCollapsed">
+                <el-icon><component :is="otherCollapsed ? Expand : Fold" /></el-icon>
+              </el-button>
+            </div>
+              <div v-show="!otherCollapsed" class="business-form-grid" :class="{ 'readonly-block': isReadonly }">
+                <el-form-item label="通関名義">
+                  <el-input v-model="blForm.customsTitle"></el-input>
+                </el-form-item>
+                <el-form-item label="Notify Party">
+                  <el-input v-model="blForm.notifyParty"></el-input>
+                </el-form-item>
+                <el-form-item label="Booking No.">
+                  <el-input v-model="blForm.bookingNo"></el-input>
+                </el-form-item>
+                <el-form-item label="船社">
+                  <el-input v-model="blForm.shippingLine"></el-input>
+                </el-form-item>
+                <el-form-item label="Booking先(NVOCC)">
+                  <el-input v-model="blForm.bookingAgent"></el-input>
+                </el-form-item>
+                <el-form-item label="入港日">
+                  <el-date-picker v-model="blForm.arrivalDate" type="date" format="YYYY/MM/DD" value-format="YYYY/MM/DD" style="width:100%;"></el-date-picker>
+                </el-form-item>
+                <el-form-item label="出港日">
+                  <el-date-picker v-model="blForm.departureDate" type="date" format="YYYY/MM/DD" value-format="YYYY/MM/DD" style="width:100%;"></el-date-picker>
+                </el-form-item>
+                <el-form-item label="Place of Receipt">
+                  <el-input v-model="blForm.placeOfReceipt"></el-input>
+                </el-form-item>
+                <el-form-item label="Port of Loading">
+                  <el-input v-model="blForm.portOfLoading"></el-input>
+                </el-form-item>
+                <el-form-item label="VIA">
+                  <el-input v-model="blForm.via"></el-input>
+                </el-form-item>
+                <el-form-item label="Port of Discharge">
+                  <el-input v-model="blForm.portOfDischarge"></el-input>
+                </el-form-item>
+                <el-form-item label="Place of Delivery">
+                  <el-input v-model="blForm.placeOfDelivery"></el-input>
+                </el-form-item>
+                <el-form-item label="Final Destination" class="full-row">
+                  <el-input v-model="blForm.finalDestination"></el-input>
+                </el-form-item>
+                <el-form-item label="説明" class="full-row">
+                  <el-input v-model="blForm.description" type="textarea" :rows="2"></el-input>
+                </el-form-item>
+                <el-form-item label="連絡メール">
+                  <el-input v-model="blForm.contactEmail"></el-input>
+                </el-form-item>
+                <el-form-item label="連絡先">
+                  <el-input v-model="blForm.contactName"></el-input>
+                </el-form-item>
+                <el-form-item label="Total Number of Containers" class="full-row">
+                  <el-input v-model="blForm.totalContainersText"></el-input>
+                </el-form-item>
+                <el-form-item label="Freight prepaid at">
+                  <el-input v-model="blForm.freightPrepaidAt"></el-input>
+                </el-form-item>
+                <el-form-item label="Freight payable at">
+                  <el-input v-model="blForm.freightPayableAt"></el-input>
+                </el-form-item>
+                <el-form-item label="Place and date of issue">
+                  <el-input v-model="blForm.placeOfIssue"></el-input>
+                </el-form-item>
+                <el-form-item label="B/L Type">
+                  <el-select v-model="blForm.blType">
+                    <el-option label="Surrender" value="Surrender"></el-option>
+                    <el-option label="Original" value="Original"></el-option>
+                  </el-select>
+                </el-form-item>
+                <el-form-item label="No. of Original B/L">
+                  <el-input v-model="blForm.originalBLCount"></el-input>
+                </el-form-item>
+                <el-form-item label="備考" class="full-row">
+                  <el-input v-model="blForm.remarks" type="textarea" :rows="2"></el-input>
+                </el-form-item>
+              </div>
+          </div>
+
+          <div class="form-section no-top-line">
+            <h3 class="form-section-title">コンテナ情報</h3>
+            <div :class="{ 'readonly-block': isReadonly }">
+            <el-table :data="containerInfoRows" border class="new-case-table">
+              <el-table-column label="No." width="60">
+                <template #default="scope">{{ scope.$index + 1 }}</template>
+              </el-table-column>
+              <el-table-column width="56">
+                <template #header>
+                  <el-checkbox v-model="allContainerRowsSelected"></el-checkbox>
+                </template>
+                <template #default="scope">
+                  <el-checkbox v-model="scope.row.selected"></el-checkbox>
+                </template>
+              </el-table-column>
+              <el-table-column prop="containerNo" label="コンテナ番号" min-width="180">
+                <template #default="scope"><el-input v-model="scope.row.containerNo"></el-input></template>
+              </el-table-column>
+              <el-table-column prop="sealNo" label="シール番号" min-width="140">
+                <template #default="scope"><el-input v-model="scope.row.sealNo"></el-input></template>
+              </el-table-column>
+              <el-table-column prop="size" label="サイズ" width="120">
+                <template #default="scope"><el-input v-model="scope.row.size"></el-input></template>
+              </el-table-column>
+              <el-table-column prop="quantity" label="数量" width="110">
+                <template #default="scope"><el-input v-model="scope.row.quantity"></el-input></template>
+              </el-table-column>
+              <el-table-column prop="quantityUnit" label="数量単位" width="110">
+                <template #default="scope"><el-input v-model="scope.row.quantityUnit"></el-input></template>
+              </el-table-column>
+              <el-table-column prop="netWeight" label="Net Weight" width="130">
+                <template #default="scope"><el-input v-model="scope.row.netWeight"></el-input></template>
+              </el-table-column>
+              <el-table-column prop="grossWeight" label="Gross Weight" width="130">
+                <template #default="scope"><el-input v-model="scope.row.grossWeight"></el-input></template>
+              </el-table-column>
+              <el-table-column prop="volumeM3" label="容積" width="120">
+                <template #default="scope"><el-input v-model="scope.row.volumeM3"></el-input></template>
+              </el-table-column>
+                <el-table-column prop="status" label="ステタス" width="120">
+                  <template #default="scope">
+                    <span>{{ scope.row.status }}</span>
+                  </template>
+                </el-table-column>
+              </el-table>
+            <div class="compact-summary-row">
+              <div class="compact-summary-item">
+                <span class="compact-summary-label">コンテナ合計</span>
+                <el-input :model-value="containerTotal" readonly></el-input>
+              </div>
+              <div class="compact-summary-item">
+                <span class="compact-summary-label">件数合計</span>
+                <el-input :model-value="pieceTotal" readonly></el-input>
+              </div>
+              <div class="compact-summary-item">
+                <span class="compact-summary-label">重量合計（Gross）</span>
+                <el-input :model-value="grossWeightTotal" readonly></el-input>
+              </div>
+              <div class="compact-summary-item">
+                <span class="compact-summary-label">容積合計</span>
+                <el-input :model-value="volumeTotal" readonly></el-input>
+              </div>
+            </div>
+            </div>
+          </div>
+
+          <div class="bottom-actions">
+            <el-button v-if="!isReadonly" type="primary" plain @click="exportDialogVisible = true">書類出力</el-button>
+            <el-button type="primary" plain @click="goBack">戻る</el-button>
+          </div>
+          </template>
+        </el-form>
+      </el-card>
+
+      <el-dialog v-model="caseDialogVisible" title="案件一覧" width="780px">
+        <el-table :data="caseOptions" border style="width:100%">
+          <el-table-column label="No." width="70">
+            <template #default="scope">{{ scope.$index + 1 }}</template>
+          </el-table-column>
+          <el-table-column prop="caseNo" label="案件番号" min-width="160"></el-table-column>
+          <el-table-column prop="caseName" label="案件名" min-width="220"></el-table-column>
+          <el-table-column label="操作" width="100">
+            <template #default="scope">
+              <el-button type="primary" plain @click="selectCase(scope.row.caseNo)">選択</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+      </el-dialog>
+
+      <el-dialog v-model="exportDialogVisible" title="書類出力" width="560px">
+        <el-form label-width="110px">
+          <el-form-item label="出力対象">
+            <div style="display:flex; flex-direction:column; gap:10px; width:100%;">
+              <el-checkbox v-model="exportSelection.all">全部</el-checkbox>
+              <el-checkbox-group v-model="exportSelection.docs">
+                <div style="display:flex; gap:18px; flex-wrap:wrap;">
+                  <el-checkbox label="Invoice">Invoice</el-checkbox>
+                  <el-checkbox label="B/L">B/L</el-checkbox>
+                  <el-checkbox label="Packing List">Packing List</el-checkbox>
+                </div>
+              </el-checkbox-group>
+            </div>
+          </el-form-item>
+          <el-form-item label="出力形式">
+            <el-radio-group v-model="exportSelection.format">
+              <el-radio label="Excel">Excel</el-radio>
+              <el-radio label="PDF">PDF</el-radio>
+            </el-radio-group>
+          </el-form-item>
+        </el-form>
+        <template #footer>
+          <el-button type="primary" plain @click="exportDialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="exportDocs">出力</el-button>
+        </template>
+      </el-dialog>
+
+    </div>
+  `,
+  setup() {
+    const route = VueRouter.useRoute();
+    const router = VueRouter.useRouter();
+    const isReadonly = Vue.computed(() => String(route.query.readonly || "") === "1");
+    const activeCase = Vue.ref(null);
+    const selectedCaseNo = Vue.ref("");
+    const caseDialogVisible = Vue.ref(false);
+    const basicCollapsed = Vue.ref(false);
+    const otherCollapsed = Vue.ref(false);
+    const exportDialogVisible = Vue.ref(false);
+    const exportSelection = Vue.reactive({
+      all: true,
+      docs: ["Invoice", "B/L", "Packing List"],
+      format: "PDF"
+    });
+    const caseOptions = Object.values(customsCaseDetails).map((item) => ({ caseNo: item.caseNo, caseName: item.caseName }));
+    const todayString = () => {
+      const now = new Date();
+      const yyyy = now.getFullYear();
+      const mm = String(now.getMonth() + 1).padStart(2, "0");
+      const dd = String(now.getDate()).padStart(2, "0");
+      return yyyy + "/" + mm + "/" + dd;
+    };
+
+    const emptyInvoiceForm = () => ({
+      invNo: "",
+      invDate: todayString(),
+      shipper: "",
+      consignee: "",
+      vesselName: "",
+      voyNo: "",
+      etd: "",
+      loadingPort: "",
+      destination: "",
+    });
+    const emptyBlForm = () => ({
+      customsTitle: "",
+      notifyParty: "SAME AS CONSIGNEE",
+      bookingNo: "",
+      shippingLine: "",
+      bookingAgent: "",
+      arrivalDate: "",
+      departureDate: "",
+      placeOfReceipt: "",
+      portOfLoading: "",
+      via: "",
+      portOfDischarge: "",
+      placeOfDelivery: "",
+      finalDestination: "",
+      description: "",
+      contactEmail: "",
+      contactName: "",
+      totalContainersText: "SAY: THREE(3) CONTAINER ONLY.-",
+      freightPrepaidAt: "TOKYO JAPAN",
+      freightPayableAt: "TOKYO JAPAN",
+      placeOfIssue: "TOKYO JAPAN",
+      blType: "Surrender",
+      originalBLCount: "ONE (1)",
+      remarks: ""
+    });
+    const invoiceForm = Vue.reactive(emptyInvoiceForm());
+    const containerInfoRows = Vue.ref([]);
+    const blForm = Vue.reactive(emptyBlForm());
+
+    const descriptionText = (caseData) => {
+      if (!caseData) return "";
+      return [caseData.itemName || "", caseData.productName || ""].filter(Boolean).join(" / ");
+    };
+    const firstLine = (text) => (text || "").split("\n")[0] || "";
+    const destinationHead = (text) => (text || "").split(",")[0] || "";
+    const numberToWords = (num) => {
+      const map = ["ZERO", "ONE", "TWO", "THREE", "FOUR", "FIVE", "SIX", "SEVEN", "EIGHT", "NINE", "TEN"];
+      return map[num] || String(num);
+    };
+    const bagTotal = (containers) => containers.reduce((sum, item) => sum + Number(item.quantity || 0), 0);
+    const grossTotal = (containers) => containers.reduce((sum, item) => sum + Number(item.grossWeight || 0), 0);
+    const volumeTotalValue = (containers) => containers.reduce((sum, item) => sum + Number(item.volumeM3 || 0), 0);
+
+    const resetAllForms = () => {
+      Object.assign(invoiceForm, emptyInvoiceForm());
+      containerInfoRows.value = [];
+      Object.assign(blForm, emptyBlForm());
+    };
+
+    const applyCase = (caseNo) => {
+      const caseData = customsCaseDetails[caseNo];
+      selectedCaseNo.value = caseNo || "";
+      activeCase.value = caseData || null;
+      resetAllForms();
+      if (!caseData) return;
+
+      Object.assign(invoiceForm, {
+        invNo: caseData.caseNo,
+        invDate: todayString(),
+        shipper: caseData.shipperDetail || "",
+        consignee: caseData.consigneeDetail || "",
+        vesselName: caseData.vesselName || "",
+        voyNo: caseData.voyNo || "",
+        etd: caseData.etd || "",
+        loadingPort: caseData.loadingPortName || "",
+        destination: caseData.finalDestinationName || ""
+      });
+      containerInfoRows.value = caseData.containers.map((item) => ({
+        selected: true,
+        containerNo: item.containerNo || "",
+        sealNo: item.sealNo || "",
+        size: item.size || "40HQ",
+        quantity: String(item.quantity || ""),
+        quantityUnit: item.quantityUnit || "BAGS",
+        netWeight: String(item.netWeight || ""),
+        grossWeight: String(item.grossWeight || ""),
+        volumeM3: String(item.volumeM3 || ""),
+        status: "Pick済"
+      }));
+
+      Object.assign(blForm, {
+        customsTitle: firstLine(caseData.shipperDetail),
+        notifyParty: "SAME AS CONSIGNEE",
+        bookingNo: caseData.blNo || "",
+        shippingLine: "NYOCC",
+        bookingAgent: "NYOCC TOKYO",
+        arrivalDate: caseData.etd || "",
+        departureDate: caseData.etd || "",
+        placeOfReceipt: caseData.loadingPortName || "",
+        portOfLoading: caseData.loadingPortName || "",
+        via: "",
+        portOfDischarge: caseData.finalDestinationName || "",
+        placeOfDelivery: caseData.finalDestinationName || "",
+        finalDestination: caseData.finalDestinationName || "",
+        description: "栄春贸易04/07 1本，04/09 1本，04/111本",
+        contactEmail: "",
+        contactName: "",
+        totalContainersText: "SAY: " + numberToWords(caseData.containers.length) + "(" + caseData.containers.length + ") CONTAINER ONLY.-",
+        freightPrepaidAt: "TOKYO JAPAN",
+        freightPayableAt: "TOKYO JAPAN",
+        placeOfIssue: "TOKYO JAPAN",
+        blType: "Surrender",
+        originalBLCount: "ONE (1)",
+        remarks: ""
+      });
+    };
+
+    const selectCase = (caseNo) => {
+      applyCase(caseNo);
+      caseDialogVisible.value = false;
+    };
+    const goBack = () => router.push(String(route.query.from || "/cases/customs"));
+    const syncExportAllFlag = () => {
+      exportSelection.all = exportSelection.docs.length === 3;
+    };
+    Vue.watch(() => exportSelection.docs.slice(), syncExportAllFlag, { deep: false });
+    Vue.watch(() => exportSelection.all, (value) => {
+      exportSelection.docs = value ? ["Invoice", "B/L", "Packing List"] : [];
+    });
+    const exportDocs = async () => {
+      if (!activeCase.value) {
+        ElementPlus.ElMessage.warning("先に案件を選択してください");
+        return;
+      }
+      if (!exportSelection.docs.length) {
+        ElementPlus.ElMessage.warning("出力対象を選択してください");
+        return;
+      }
+      if (exportSelection.docs.includes("Packing List")) {
+        const selectedCount = containerInfoRows.value.filter((item) => item.selected).length;
+        const totalCount = containerInfoRows.value.length;
+        if (!selectedCount) {
+          ElementPlus.ElMessage.error("出力コンテナを指定してください。");
+          return;
+        }
+        if (selectedCount < totalCount) {
+          try {
+            await ElementPlus.ElMessageBox.confirm(
+              "PickingListでは、一部コンテナ情報を出力してよろしいでしょうか？",
+              "確認",
+              {
+                type: "warning",
+                confirmButtonText: "はい",
+                cancelButtonText: "取消"
+              }
+            );
+          } catch (error) {
+            return;
+          }
+        }
+      }
+      exportDialogVisible.value = false;
+      ElementPlus.ElMessage.success(exportSelection.format + "出力（Mock）: " + exportSelection.docs.join(" / "));
+    };
+    const allContainerRowsSelected = Vue.computed({
+      get: () => containerInfoRows.value.length > 0 && containerInfoRows.value.every(item => item.selected),
+      set: (value) => {
+        containerInfoRows.value.forEach((item) => {
+          item.selected = value;
+        });
+      }
+    });
+    const containerTotal = Vue.computed(() => containerInfoRows.value.length);
+    const pieceTotal = Vue.computed(() => containerInfoRows.value.reduce((sum, item) => sum + Number(item.quantity || 0), 0).toLocaleString());
+    const grossWeightTotal = Vue.computed(() => containerInfoRows.value.reduce((sum, item) => sum + Number(item.grossWeight || 0), 0).toLocaleString());
+    const volumeTotal = Vue.computed(() => containerInfoRows.value.reduce((sum, item) => sum + Number(item.volumeM3 || 0), 0).toFixed(3));
+
+    Vue.watch(
+      () => route.query.caseNo,
+      (caseNo) => {
+        applyCase(caseNo || "");
+      },
+      { immediate: true }
+    );
+
+    return {
+      activeCase,
+      isReadonly,
+      selectedCaseNo,
+      caseDialogVisible,
+      basicCollapsed,
+      otherCollapsed,
+      exportDialogVisible,
+      exportSelection,
+      caseOptions,
+      allContainerRowsSelected,
+      invoiceForm,
+      containerInfoRows,
+      blForm,
+      selectCase,
+      exportDocs,
+      goBack,
+      containerTotal,
+      pieceTotal,
+      grossWeightTotal,
+      volumeTotal,
+      Expand,
+      Fold
+    };
+  }
+};
+
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// モジュール2: 見積管理
+// ═══════════════════════════════════════════════════════════════════════════════
+
+// ---------- 見積一覧 ----------
+const EstimateListPage = {
+  template: `
+    <div class="page-card">
+      <div class="page-head">
+        <div>
+          <h2>見積一覧</h2>
+          <p>案件化前の顧客向け見積を検索・管理する画面です。</p>
+        </div>
+      </div>
+
+      <div class="finance-search-panel">
+        <div class="finance-grid">
+          <div class="search-field">
+            <label class="search-label">見積番号</label>
+            <el-input v-model="filters.quoteNo"></el-input>
+          </div>
+          <div class="search-field">
+            <label class="search-label">取引先名</label>
+            <el-input v-model="filters.clientName"></el-input>
+          </div>
+          <div class="search-field">
+            <label class="search-label">件名</label>
+            <el-input v-model="filters.subject"></el-input>
+          </div>
+          <div class="search-field">
+            <label class="search-label">揚地</label>
+            <el-input v-model="filters.portTo"></el-input>
+          </div>
+          <div class="search-field">
+            <label class="search-label">担当者</label>
+            <el-input v-model="filters.owner"></el-input>
+          </div>
+          <div class="search-field">
+            <label class="search-label">ステータス</label>
+            <el-select v-model="filters.status" clearable placeholder="全て">
+              <el-option label="" value=""></el-option>
+              <el-option label="出力済" value="出力済"></el-option>
+              <el-option label="未出力" value="未出力"></el-option>
+            </el-select>
+          </div>
+        </div>
+        <div class="search-actions">
+          <el-button type="primary" :icon="Search">検索</el-button>
+        </div>
+      </div>
+
+      <div class="case-toolbar">
+        <el-button type="primary" :icon="Plus" @click="goNew">新規</el-button>
+        <div class="table-note">Excel見積書をベースにした見積管理です。案件化前の顧客向け报价に利用します。</div>
+      </div>
+
+      <el-table :data="pagedRows" stripe border style="width: 100%">
+        <el-table-column label="No." width="60">
+          <template #default="scope">{{ scope.$index + 1 }}</template>
+        </el-table-column>
+        <el-table-column label="操作" width="220">
+          <template #default="scope">
+            <div class="operation-links">
+              <a class="action-link action-view" @click.prevent="goDetail(scope.row)">詳細</a>
+              <a class="action-link action-edit" @click.prevent="goEdit(scope.row)">変更</a>
+              <a class="action-link action-copy" @click.prevent="copyEstimate(scope.row)">コピー</a>
+              <a class="action-link action-view" @click.prevent="exportEstimate(scope.row)">Excel出力</a>
+            </div>
+          </template>
+        </el-table-column>
+        <el-table-column prop="quoteNo" label="見積番号" width="150"></el-table-column>
+        <el-table-column prop="clientName" label="取引先名" min-width="180"></el-table-column>
+        <el-table-column prop="subject" label="件名" min-width="160"></el-table-column>
+        <el-table-column prop="workDescription" label="作業内容" min-width="180"></el-table-column>
+        <el-table-column label="航路" min-width="200">
+          <template #default="scope">{{ scope.row.portFrom }} → {{ scope.row.portTo }}</template>
+        </el-table-column>
+        <el-table-column prop="containerType" label="箱タイプ" width="90"></el-table-column>
+        <el-table-column prop="unitBudget1" label="1本予算" width="130"></el-table-column>
+        <el-table-column prop="validUntil" label="有効期限" width="120"></el-table-column>
+        <el-table-column prop="owner" label="担当者" width="110"></el-table-column>
+        <el-table-column prop="status" label="ステータス" width="110">
+          <template #default="scope">
+            <el-tag :type="statusTagType(scope.row.status)" size="small">{{ scope.row.status }}</el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column prop="updatedAt" label="更新日" width="120"></el-table-column>
+      </el-table>
+
+      <div class="table-pagination">
+        <el-pagination
+          :current-page="currentPage"
+          :page-size="pageSize"
+          :page-sizes="[10, 20, 50]"
+          :total="total"
+          layout="total, sizes, prev, pager, next"
+          background
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
+      </div>
+    </div>
+  `,
+  setup() {
+    const router = VueRouter.useRouter();
+    const estimateSeedRows = [
+      { clientName: "塩沢金属株式会社", subject: "METAL SCRAP", workDescription: "海上運賃・陸上運送料", portFrom: "YOKOHAMA", portTo: "PORT QASIM", containerType: "40HQ", unitBudget1: "¥ 338,700", validUntil: "2026/04/30", owner: "佐藤 美咲", status: "出力済", updatedAt: "2026/04/16" },
+      { clientName: "野田金属産業株式会社", subject: "アルミ SCRAP", workDescription: "海上運賃・陸上運送料・通関料", portFrom: "SENDAI", portTo: "香港", containerType: "40HC", unitBudget1: "¥ 303,080", validUntil: "都度確認", owner: "高橋 優", status: "未出力", updatedAt: "2026/04/16" },
+      { clientName: "明川科技", subject: "NEW PAPER PULP", workDescription: "海上運賃・陸上運送料・通関料", portFrom: "YOKOHAMA", portTo: "SANSHAN", containerType: "40HQ", unitBudget1: "¥ 287,680", validUntil: "2026/05/15", owner: "中村 亮", status: "未出力", updatedAt: "2026/04/17" },
+      { clientName: "東洋資源株式会社", subject: "COPPER SCRAP", workDescription: "海上運賃・通関料", portFrom: "TOKYO", portTo: "NINGBO", containerType: "20GP", unitBudget1: "¥ 198,400", validUntil: "2026/05/10", owner: "佐藤 美咲", status: "出力済", updatedAt: "2026/04/18" },
+      { clientName: "日高金属株式会社", subject: "MIXED METAL", workDescription: "海上運賃・陸送・保管料", portFrom: "NAGOYA", portTo: "BUSAN", containerType: "40HQ", unitBudget1: "¥ 315,900", validUntil: "2026/05/08", owner: "高橋 優", status: "未出力", updatedAt: "2026/04/18" },
+      { clientName: "港南通商株式会社", subject: "PVC RESIN", workDescription: "海上運賃・書類作成", portFrom: "KOBE", portTo: "MANILA", containerType: "20GP", unitBudget1: "¥ 176,300", validUntil: "2026/05/20", owner: "中村 亮", status: "出力済", updatedAt: "2026/04/19" }
+    ];
+    const rows = Vue.ref(
+      Array.from({ length: 26 }, (_, index) => {
+        const base = estimateSeedRows[index % estimateSeedRows.length];
+        return {
+          no: index + 1,
+          quoteNo: "QT-2026-" + String(index + 1).padStart(3, "0"),
+          clientName: base.clientName,
+          subject: base.subject,
+          workDescription: base.workDescription,
+          portFrom: base.portFrom,
+          portTo: base.portTo,
+          containerType: base.containerType,
+          unitBudget1: base.unitBudget1,
+          validUntil: base.validUntil,
+          owner: base.owner,
+          status: base.status,
+          updatedAt: base.updatedAt
+        };
+      })
+    );
+    const filters = Vue.reactive({ quoteNo: "", clientName: "", subject: "", portTo: "", owner: "", status: "" });
+    const filteredRows = Vue.computed(() => {
+      return rows.value.filter(r => {
+        if (filters.quoteNo && !r.quoteNo.includes(filters.quoteNo)) return false;
+        if (filters.clientName && !r.clientName.includes(filters.clientName)) return false;
+        if (filters.subject && !r.subject.includes(filters.subject)) return false;
+        if (filters.portTo && !r.portTo.toUpperCase().includes(filters.portTo.toUpperCase())) return false;
+        if (filters.owner && !r.owner.includes(filters.owner)) return false;
+        if (filters.status && r.status !== filters.status) return false;
+        return true;
+      });
+    });
+    const pagination = useTablePagination(filteredRows);
+    const statusTagType = (s) => {
+      if (s === "出力済") return "success";
+      if (s === "未出力") return "info";
+      return "";
+    };
+    const goNew = () => router.push("/estimate/new");
+    const goEdit = (row) => router.push({ path: "/estimate/new", query: { quoteNo: row.quoteNo } });
+    const goDetail = (row) => router.push({ path: "/estimate/new", query: { quoteNo: row.quoteNo, readonly: "1" } });
+    const copyEstimate = (row) => router.push({ path: "/estimate/new", query: { quoteNo: row.quoteNo, mode: "copy" } });
+    const exportEstimate = (row) => ElementPlus.ElMessage.success("Excel出力（Mock）：" + row.quoteNo);
+    return { filters, filteredRows, ...pagination, statusTagType, goNew, goEdit, goDetail, copyEstimate, exportEstimate, Search, Plus };
+  }
+};
+
+// ---------- 見積新規/編集 ----------
+const EstimateNewPage = {
+  template: `
+    <div>
+      <div class="back-link" @click="goBack">
+        <el-icon><ArrowLeft /></el-icon> 見積一覧に戻る
+      </div>
+
+      <el-card class="form-card">
+        <div class="page-head">
+          <div>
+            <h2>{{ isReadonly ? '見積詳細' : (isEdit ? '見積変更' : '見積新規') }}</h2>
+            <p>「横浜～SANSHAN.xls」ベースの見積書入力画面です。案件管理の前段階で顧客向け报价を作成します。</p>
+          </div>
+          <el-tag :type="isReadonly ? 'info' : (isEdit ? 'warning' : (isCopy ? 'info' : 'success'))">{{ isReadonly ? '参照モード' : (isEdit ? '編集モード' : (isCopy ? 'コピー作成モード' : '新規作成モード')) }}</el-tag>
+        </div>
+
+        <el-form label-width="140px">
+          <div class="form-section">
+            <h3 class="form-section-title">基本情報</h3>
+            <div class="business-form-grid" :class="{ 'readonly-block': isReadonly }">
+              <el-form-item label="見積番号">
+                <el-input v-model="form.quoteNo" :readonly="isEdit || isReadonly"></el-input>
+              </el-form-item>
+              <el-form-item label="見積日">
+                <el-date-picker v-model="form.quoteDate" type="date" format="YYYY/MM/DD" value-format="YYYY/MM/DD" style="width:100%;"></el-date-picker>
+              </el-form-item>
+              <el-form-item label="有効期限">
+                <el-date-picker v-model="form.validUntil" type="date" format="YYYY/MM/DD" value-format="YYYY/MM/DD" style="width:100%;"></el-date-picker>
+              </el-form-item>
+              <el-form-item label="ステータス">
+                <el-select v-model="form.status">
+                  <el-option label="出力済" value="出力済"></el-option>
+                  <el-option label="未出力" value="未出力"></el-option>
+                </el-select>
+              </el-form-item>
+              <el-form-item label="件名">
+                <el-input v-model="form.subject"></el-input>
+              </el-form-item>
+              <el-form-item label="作業内容">
+                <el-input v-model="form.workDescription"></el-input>
+              </el-form-item>
+              <el-form-item label="見積担当者">
+                <el-input v-model="form.owner"></el-input>
+              </el-form-item>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3 class="form-section-title">取引先情報</h3>
+            <div class="business-form-grid" :class="{ 'readonly-block': isReadonly }">
+              <el-form-item label="取引先名" class="full-row">
+                <el-input v-model="form.clientName"></el-input>
+              </el-form-item>
+              <el-form-item label="宛名">
+                <el-input v-model="form.clientContact"></el-input>
+              </el-form-item>
+              <el-form-item label="TEL">
+                <el-input v-model="form.clientTel"></el-input>
+              </el-form-item>
+              <el-form-item label="FAX">
+                <el-input v-model="form.clientFax"></el-input>
+              </el-form-item>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3 class="form-section-title">発行元情報</h3>
+            <div class="business-form-grid" :class="{ 'readonly-block': isReadonly }">
+              <el-form-item label="会社名" class="full-row">
+                <el-input v-model="form.senderCompany"></el-input>
+              </el-form-item>
+              <el-form-item label="住所" class="full-row">
+                <el-input v-model="form.senderAddress" type="textarea" :rows="2"></el-input>
+              </el-form-item>
+              <el-form-item label="TEL / FAX" class="full-row">
+                <el-input v-model="form.senderTelFax"></el-input>
+              </el-form-item>
+              <el-form-item label="表示役職">
+                <el-input v-model="form.senderManager1"></el-input>
+              </el-form-item>
+              <el-form-item label="表示担当">
+                <el-input v-model="form.senderManager2"></el-input>
+              </el-form-item>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3 class="form-section-title">輸送条件</h3>
+            <div class="business-form-grid" :class="{ 'readonly-block': isReadonly }">
+              <el-form-item label="積地">
+                <el-input v-model="form.portFrom"></el-input>
+              </el-form-item>
+              <el-form-item label="揚地">
+                <el-input v-model="form.portTo"></el-input>
+              </el-form-item>
+              <el-form-item label="箱型">
+                <el-select v-model="form.containerType">
+                  <el-option label="40HQ" value="40HQ"></el-option>
+                  <el-option label="40HC" value="40HC"></el-option>
+                  <el-option label="40DC" value="40DC"></el-option>
+                  <el-option label="20DC" value="20DC"></el-option>
+                </el-select>
+              </el-form-item>
+              <el-form-item label="支払方法">
+                <el-input v-model="form.paymentTerms"></el-input>
+              </el-form-item>
+              <el-form-item label="摘要" class="full-row">
+                <el-input v-model="form.remarks" type="textarea" :rows="3"></el-input>
+              </el-form-item>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h3 class="form-section-title">見積明細</h3>
+            <div :class="{ 'readonly-block': isReadonly }">
+              <div style="display:grid; gap:18px;">
+                <div v-for="section in estimateSections" :key="section.key" class="sub-card">
+                  <div class="finance-tools" style="margin:0 0 10px;">
+                    <h4 style="margin:0; color:var(--brand); font-size:16px;">{{ section.label }}</h4>
+                    <div v-if="!isReadonly">
+                      <el-button type="primary" plain @click="addCostItem(section.key)">追加行</el-button>
+                    </div>
+                  </div>
+                  <el-table :data="costItemsByCategory(section.key)" border class="new-case-table" style="width:100%;">
+                    <el-table-column label="No." width="60">
+                      <template #default="scope">{{ scope.$index + 1 }}</template>
+                    </el-table-column>
+                    <el-table-column label="項目名" min-width="180">
+                      <template #default="scope"><el-input v-model="scope.row.name"></el-input></template>
+                    </el-table-column>
+                    <el-table-column label="説明" min-width="240">
+                      <template #default="scope"><el-input v-model="scope.row.note"></el-input></template>
+                    </el-table-column>
+                    <el-table-column label="単価" width="120">
+                      <template #default="scope"><el-input v-model.number="scope.row.unitPrice"></el-input></template>
+                    </el-table-column>
+                    <el-table-column label="単位" width="90">
+                      <template #default="scope"><el-input v-model="scope.row.unit"></el-input></template>
+                    </el-table-column>
+                    <el-table-column label="税区分" width="110">
+                      <template #default="scope">
+                        <el-select v-model="scope.row.taxType">
+                          <el-option label="課税" value="課税"></el-option>
+                          <el-option label="非課税" value="非課税"></el-option>
+                        </el-select>
+                      </template>
+                    </el-table-column>
+                    <el-table-column v-if="!isReadonly" label="削除" width="80" fixed="right">
+                      <template #default="scope">
+                        <el-button circle type="danger" plain :icon="Delete" @click="removeCostItem(scope.row)"></el-button>
+                      </template>
+                    </el-table-column>
+                </el-table>
+              </div>
+            </div>
+          </div>
+          </div>
+
+          <div class="form-section no-top-line">
+            <h3 class="form-section-title">本数別予算金額</h3>
+            <div class="sub-card">
+              <div class="search-label" style="margin-bottom:10px;">換算</div>
+              <div class="business-form-grid" :class="{ 'readonly-block': isReadonly }" style="padding:0; background:transparent; border:none;">
+                <el-form-item label="換算レート">
+                  <el-input v-model="form.exchangeRate"></el-input>
+                </el-form-item>
+              </div>
+              <el-table :data="budgetRows" border class="new-case-table" style="width:100%; margin-top:8px;">
+                <el-table-column label="区分" min-width="180">
+                  <template #default="scope"><el-input v-model="scope.row.label"></el-input></template>
+                </el-table-column>
+                <el-table-column label="条件" min-width="180">
+                  <template #default="scope"><el-input v-model="scope.row.condition"></el-input></template>
+                </el-table-column>
+                <el-table-column label="予算金額 /本" min-width="160">
+                  <template #default="scope">{{ formatYen(scope.row.amount) }}</template>
+                </el-table-column>
+                <el-table-column label="備考" min-width="180">
+                  <template #default="scope"><el-input v-model="scope.row.note"></el-input></template>
+                </el-table-column>
+              </el-table>
+            </div>
+          </div>
+
+          <div class="bottom-actions">
+            <el-button v-if="!isReadonly" type="primary" @click="saveEstimate">保存</el-button>
+            <el-button type="primary" plain @click="outputEstimate">見積書出力</el-button>
+            <el-button type="primary" plain @click="goBack">取消</el-button>
+          </div>
+        </el-form>
+      </el-card>
+
+    </div>
+  `,
+  setup() {
+    const route = VueRouter.useRoute();
+    const router = VueRouter.useRouter();
+    const isReadonly = Vue.computed(() => String(route.query.readonly || "") === "1");
+    const isEdit = Vue.computed(() => !!route.query.quoteNo && route.query.mode !== "copy");
+    const isCopy = Vue.computed(() => !!route.query.quoteNo && route.query.mode === "copy");
+    const sheetTemplates = {
+      "QT-2026-001": {
+        quoteNo: "QT-2026-001",
+        quoteDate: "2026/04/16",
+        validUntil: "2026/04/30",
+        status: "出力済",
+        subject: "METAL SCRAP",
+        workDescription: "海上運賃・陸上運送料",
+        owner: "佐藤 美咲",
+        clientName: "塩沢金属株式会社",
+        clientContact: "董様、小沢様",
+        clientTel: "0553-32-3178",
+        clientFax: "0553-32-3187",
+        senderCompany: "敬洋国際物流株式会社",
+        senderAddress: "〒140-0004\n東京都品川区南品川2-2-7南品川Jビル7F",
+        senderTelFax: "TEL：03-5783-9617   FAX：03-5783-9619",
+        senderManager1: "課長",
+        senderManager2: "担当者",
+        portFrom: "YOKOHAMA",
+        portTo: "PORT QASIM",
+        containerType: "40HQ",
+        exchangeRate: 120,
+        freightCurrency: "USD",
+        paymentTerms: "B/L DATE",
+        weightFeeNote: "実費",
+        remarks: "上記以外の許可申請、作業等が発生した場合は別途協議の上別料金をご請求申し上げます。\n消費税が掛る場合は別途申し受けます。",
+        costItems: [
+          { category: "海上運賃", name: "海上運賃", note: "", unitPrice: 1650, unit: "/本", taxType: "非課税", currency: "USD" },
+          { category: "海上運賃", name: "THC", note: "", unitPrice: 45000, unit: "/本", taxType: "非課税", currency: "JPY" },
+          { category: "海上運賃", name: "DOC FEE", note: "", unitPrice: 3000, unit: "/件", taxType: "非課税", currency: "JPY" },
+          { category: "海上運賃", name: "SEAL FEE", note: "", unitPrice: 400, unit: "/件", taxType: "非課税", currency: "JPY" },
+          { category: "通関料", name: "通関料", note: "", unitPrice: 5900, unit: "/3欄", taxType: "非課税", currency: "JPY" },
+          { category: "通関料", name: "通関取扱手数料", note: "", unitPrice: 12000, unit: "/件", taxType: "課税", currency: "JPY" },
+          { category: "陸上運送料", name: "横浜CY～埼玉県日高市～横浜CY（40HQ）", note: "3軸シャーシ", unitPrice: 68000, unit: "/本", taxType: "課税", currency: "JPY" },
+          { category: "台貫料", name: "台貫料", note: "実費", unitPrice: 0, unit: "/本", taxType: "非課税", currency: "JPY" }
+        ]
+      },
+      "QT-2026-002": {
+        quoteNo: "QT-2026-002",
+        quoteDate: "2026/04/16",
+        validUntil: "2026/05/31",
+        status: "未出力",
+        subject: "アルミ SCRAP",
+        workDescription: "海上運賃・陸上運送料・通関料",
+        owner: "高橋 優",
+        clientName: "野田金属産業株式会社",
+        clientContact: "野田様",
+        clientTel: "",
+        clientFax: "",
+        senderCompany: "敬洋国際物流株式会社",
+        senderAddress: "〒140-0004\n東京都品川区南品川2-2-7南品川Jビル7F",
+        senderTelFax: "TEL：03-5783-9617   FAX：03-5783-9619",
+        senderManager1: "課長",
+        senderManager2: "担当者",
+        portFrom: "SENDAI",
+        portTo: "香港",
+        containerType: "40HC",
+        exchangeRate: 158,
+        freightCurrency: "USD",
+        paymentTerms: "B/L DATE",
+        weightFeeNote: "実費",
+        remarks: "上記以外の許可申請、作業等が発生した場合は別途協議の上別料金をご請求申し上げます。\n消費税が掛る場合は別途申し受けます。",
+        costItems: [
+          { category: "海上運賃", name: "海上運賃", note: "", unitPrice: 280, unit: "/本", taxType: "非課税", currency: "USD" },
+          { category: "海上運賃", name: "THC", note: "船社によって異なります", unitPrice: 52000, unit: "/本", taxType: "非課税", currency: "JPY" },
+          { category: "海上運賃", name: "DOC FEE", note: "船社によって異なります", unitPrice: 4000, unit: "/件", taxType: "非課税", currency: "JPY" },
+          { category: "海上運賃", name: "SEAL FEE", note: "船社によって異なります", unitPrice: 1500, unit: "/本", taxType: "非課税", currency: "JPY" },
+          { category: "海上運賃", name: "LSS", note: "", unitPrice: 340, unit: "/本", taxType: "非課税", currency: "USD" },
+          { category: "通関料", name: "通関料", note: "", unitPrice: 5900, unit: "/3欄", taxType: "非課税", currency: "JPY" },
+          { category: "通関料", name: "通関取扱手数料", note: "", unitPrice: 12000, unit: "/件", taxType: "課税", currency: "JPY" },
+          { category: "陸上運送料", name: "仙台CY～栗原～仙台CY", note: "", unitPrice: 68000, unit: "/本", taxType: "課税", currency: "JPY" }
+        ]
+      }
+    };
+    const base = sheetTemplates[route.query.quoteNo] || sheetTemplates["QT-2026-001"];
+    const form = Vue.reactive(JSON.parse(JSON.stringify(base)));
+    if (!isEdit.value && !isCopy.value) {
+      form.quoteNo = "QT-2026-004";
+      form.quoteDate = new Date().toISOString().slice(0, 10).replace(/-/g, "/");
+      form.status = "未出力";
+      form.clientName = "";
+      form.clientContact = "";
+      form.clientTel = "";
+      form.clientFax = "";
+    } else if (isCopy.value) {
+      form.quoteNo = "QT-2026-004";
+      form.quoteDate = new Date().toISOString().slice(0, 10).replace(/-/g, "/");
+      form.status = "未出力";
+    }
+    const costItems = Vue.ref((base.costItems || []).map((item) => ({ ...item })));
+    const formatYen = (v) => "¥ " + Number(v || 0).toLocaleString();
+    const calcItemAmount = (item, count) => {
+      const converted = item.currency === "USD" ? Number(item.unitPrice || 0) * Number(form.exchangeRate || 0) : Number(item.unitPrice || 0);
+      const raw = item.unit === "/本" ? converted * count : converted;
+      return item.taxType === "課税" ? Math.round(raw * 1.1) : Math.round(raw);
+    };
+    const calcBudgetPerUnit = (count) => {
+      const total = costItems.value.reduce((sum, item) => {
+        if (item.category === "台貫料") return sum;
+        return sum + calcItemAmount(item, count);
+      }, 0);
+      return Math.round(total / count);
+    };
+    const estimateSections = [
+      { key: "海上運賃", label: "海上運賃" },
+      { key: "通関料", label: "通関料" },
+      { key: "陸上運送料", label: "陸上運送料" },
+      { key: "台貫料", label: "台貫料" }
+    ];
+    const costItemsByCategory = (category) => costItems.value.filter((item) => item.category === category);
+    const addCostItem = (category) => costItems.value.push({ category, name: "", note: "", unitPrice: 0, unit: "/本", taxType: "非課税", currency: "JPY" });
+    const removeCostItem = (row) => {
+      const index = costItems.value.indexOf(row);
+      if (index >= 0) costItems.value.splice(index, 1);
+    };
+    const budgetRows = Vue.reactive([
+      { count: 1, label: "1本輸出の場合", condition: "台貫料を除く", note: "税込" },
+      { count: 2, label: "2本輸出の場合", condition: "台貫料を除く", note: "税込" },
+      { count: 3, label: "3本輸出の場合", condition: "台貫料を除く", note: "税込" }
+    ]);
+    const updateBudgetAmounts = () => {
+      budgetRows.forEach((row) => {
+        row.amount = calcBudgetPerUnit(row.count);
+      });
+    };
+    updateBudgetAmounts();
+    Vue.watch(() => [form.exchangeRate, ...costItems.value.map((item) => [item.unitPrice, item.taxType, item.unit, item.category])], updateBudgetAmounts, { deep: true });
+    const buildEstimateHtml = () => {
+      const escapeHtml = (value) => String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+      const renderSectionRows = (sectionKey) => {
+        const rows = costItemsByCategory(sectionKey);
+        if (!rows.length) {
+          return "<tr><td colspan='8' style='height:28px;'></td></tr>";
+        }
+        return rows.map((item, index) => {
+          const titleCell = index === 0 ? "<td rowspan='" + rows.length + "' class='section-cell'>" + escapeHtml(sectionKey) + "</td>" : "";
+          return "<tr>" +
+            titleCell +
+            "<td>" + escapeHtml(item.name) + "</td>" +
+            "<td>" + escapeHtml(item.note || "") + "</td>" +
+            "<td class='num-cell'>" + escapeHtml(Number(item.unitPrice || 0).toLocaleString()) + "</td>" +
+            "<td>" + escapeHtml(item.unit) + "</td>" +
+            "<td>" + escapeHtml(item.taxType) + "</td>" +
+            "<td class='num-cell'>" + escapeHtml(Number(calcItemAmount(item, 1)).toLocaleString()) + "</td>" +
+            "<td class='num-cell'>" + escapeHtml(Number(calcItemAmount(item, 2)).toLocaleString()) + "</td>" +
+            "<td class='num-cell'>" + escapeHtml(Number(calcItemAmount(item, 3)).toLocaleString()) + "</td>" +
+          "</tr>";
+        }).join("");
+      };
+      const detailRows = estimateSections.map((section) => renderSectionRows(section.key)).join("");
+      const budgetTableRows = budgetRows.map((row) => {
+        return "<tr>" +
+          "<td>" + escapeHtml(row.label) + "</td>" +
+          "<td>" + escapeHtml(row.condition) + "</td>" +
+          "<td class='num-cell'>" + escapeHtml(Number(row.amount || 0).toLocaleString()) + "</td>" +
+          "<td>" + escapeHtml(row.note) + "</td>" +
+          "</tr>";
+      }).join("");
+      return `
+        <html><head><meta charset="UTF-8" />
+        <style>
+          body { font-family: "MS PGothic", Arial, sans-serif; font-size: 12px; padding: 20px; color:#222; }
+          table { width: 100%; border-collapse: collapse; }
+          td, th { border: 1px solid #000; padding: 6px 8px; vertical-align: middle; }
+          th { background: #f4f4f4; font-weight: 700; }
+          .title { font-size: 24px; font-weight: 700; text-align:center; letter-spacing:8px; margin: 16px 0 20px; }
+          .company { white-space: pre-line; margin-bottom: 12px; line-height:1.5; }
+          .muted-copy { margin: 4px 0; }
+          .label-cell { width: 110px; background:#fafafa; font-weight:700; }
+          .num-cell { text-align:right; }
+          .section-cell { width: 90px; font-weight:700; background:#fafafa; text-align:center; }
+          .block-title { margin: 18px 0 8px; font-weight:700; }
+        </style></head><body>
+        <div class="company">${escapeHtml(form.senderCompany)}<br>${escapeHtml(form.senderAddress)}<br>${escapeHtml(form.senderTelFax)}</div>
+        <div class="title">御 見 積 書</div>
+        <table style="margin-bottom:12px;">
+          <tr>
+            <td style="width:52%; vertical-align:top;">
+              ${escapeHtml(form.clientName)}　御中<br>
+              ${escapeHtml(form.clientContact)}<br>
+              ${form.clientTel ? "TEL：" + escapeHtml(form.clientTel) + "<br>" : ""}
+              ${form.clientFax ? "FAX：" + escapeHtml(form.clientFax) : ""}
+            </td>
+            <td style="vertical-align:top;">
+              見積番号：${escapeHtml(form.quoteNo)}<br>
+              見積日：${escapeHtml(form.quoteDate)}<br>
+              見積期限：${escapeHtml(form.validUntil)}
+            </td>
+          </tr>
+        </table>
+        <div class="muted-copy">いつもお世話になっております。</div>
+        <div class="muted-copy">下記の通りお見積りいたしますので</div>
+        <div class="muted-copy">ご検討の上、何卒御用命下さるよう御願い申し上げます。</div>
+
+        <table style="margin-top:12px; margin-bottom:12px;">
+          <tr><td class="label-cell">件名：</td><td>${escapeHtml(form.subject)}</td></tr>
+          <tr><td class="label-cell">作業内容：</td><td>${escapeHtml(form.workDescription)}</td></tr>
+          <tr><td class="label-cell">見積期限：</td><td>${escapeHtml(form.validUntil)}</td></tr>
+          <tr><td class="label-cell">積地：</td><td>${escapeHtml(form.portFrom)}</td></tr>
+          <tr><td class="label-cell">揚地：</td><td>${escapeHtml(form.portTo)}　${escapeHtml(form.containerType)}</td></tr>
+        </table>
+
+        <table>
+          <thead>
+            <tr>
+              <th style="width:90px;">区分</th>
+              <th>項目名</th>
+              <th>説明</th>
+              <th style="width:110px;">単価</th>
+              <th style="width:80px;">単位</th>
+              <th style="width:80px;">税区分</th>
+              <th style="width:90px;">1本</th>
+              <th style="width:90px;">2本</th>
+              <th style="width:90px;">3本</th>
+            </tr>
+          </thead>
+          <tbody>${detailRows}</tbody>
+        </table>
+
+        <div class="block-title">【本数別予算金額】</div>
+        <table style="margin-top:8px;">
+          <tr><td class="label-cell" style="width:110px;">換算</td><td>${escapeHtml(form.exchangeRate)}</td><td class="label-cell" style="width:110px;">備考</td><td>予算金額 /本 は自動計算</td></tr>
+        </table>
+        <table style="margin-top:0;">
+          <thead><tr><th>区分</th><th>条件</th><th style="width:140px;">予算金額 /本</th><th>備考</th></tr></thead>
+          <tbody>${budgetTableRows}</tbody>
+        </table>
+
+        <div class="block-title">｛摘要｝</div>
+        <div style="white-space:pre-line;">${escapeHtml(form.remarks)}</div>
+        <div class="block-title">｛支払方法｝</div>
+        <div>${escapeHtml(form.paymentTerms)}</div>
+        </body></html>
+      `;
+    };
+    const saveEstimate = () => ElementPlus.ElMessage.success("見積を保存しました（Mock）");
+    const outputEstimate = () => {
+      const blob = new Blob(["\ufeff", buildEstimateHtml()], { type: "application/vnd.ms-excel;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = form.quoteNo + "_見積書.xls";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      ElementPlus.ElMessage.success("見積書を出力しました（Mock）");
+    };
+    const goBack = () => router.push("/estimate/list");
+    return {
+      form, isEdit, isCopy, isReadonly, costItems,
+      estimateSections, costItemsByCategory, budgetRows,
+      formatYen, calcItemAmount, calcBudgetPerUnit,
+      addCostItem, removeCostItem,
+      saveEstimate, outputEstimate, goBack,
+      ArrowLeft, Delete
+    };
+  }
+};
+
     const routes = [
       { path: "/", redirect: "/cases/list" },
       { path: "/cases/list", component: CaseListPage },
@@ -3320,9 +5412,16 @@
       { path: "/master/dictionary", component: DictionaryMasterPage },
       { path: "/master/port", component: PortMasterPage },
       { path: "/master/vessel", component: VesselMasterPage },
+      { path: "/master/invoice-template", component: InvoiceTemplatePage },
+      { path: "/customs", redirect: "/cases/customs" },
+      { path: "/customs/create", component: CustomsNewPage },
       { path: "/user-management", redirect: "/user-management/list" },
       { path: "/user-management/list", component: UserListPage },
-      { path: "/user-management/new", component: UserNewPage }
+      { path: "/user-management/new", component: UserNewPage },
+      { path: "/cases/customs", component: CustomsListPage },
+      { path: "/estimate", redirect: "/estimate/list" },
+      { path: "/estimate/list", component: EstimateListPage },
+      { path: "/estimate/new", component: EstimateNewPage },
     ];
 
     const router = VueRouter.createRouter({
@@ -3335,9 +5434,9 @@
         <div class="app-shell">
           <header class="topbar">
             <div class="brand">
-              <div class="brand-mark">YU</div>
+              <div class="brand-mark">RX</div>
               <div class="brand-text">
-                <strong>于の通関管理システム</strong>
+                <strong>瑞祥通関管理システム</strong>
                 <span>Case / Finance / Request Administration Console</span>
               </div>
             </div>
@@ -3367,6 +5466,21 @@
                   unique-opened
                   router
                 >
+                  <el-sub-menu index="/estimate">
+                    <template #title>
+                      <el-icon><Document /></el-icon>
+                      <span>見積管理</span>
+                    </template>
+                    <el-menu-item index="/estimate/list">
+                      <el-icon><Document /></el-icon>
+                      <span>見積一覧</span>
+                    </el-menu-item>
+                    <el-menu-item index="/estimate/new">
+                      <el-icon><Plus /></el-icon>
+                      <span>見積新規</span>
+                    </el-menu-item>
+                  </el-sub-menu>
+
                   <el-sub-menu index="/cases">
                     <template #title>
                       <el-icon><Briefcase /></el-icon>
@@ -3382,18 +5496,14 @@
                     </el-menu-item>
                   </el-sub-menu>
 
-                  <el-sub-menu index="/finance">
+                  <el-sub-menu index="/customs">
                     <template #title>
-                      <el-icon><Money /></el-icon>
-                      <span>収支管理</span>
+                      <el-icon><Bell /></el-icon>
+                      <span>通関管理</span>
                     </template>
-                    <el-menu-item index="/finance/list">
+                    <el-menu-item index="/cases/customs">
                       <el-icon><Document /></el-icon>
-                      <span>収支一覧</span>
-                    </el-menu-item>
-                    <el-menu-item index="/finance/new">
-                      <el-icon><Plus /></el-icon>
-                      <span>収支新規</span>
+                      <span>通関一覧</span>
                     </el-menu-item>
                   </el-sub-menu>
 
@@ -3409,6 +5519,21 @@
                     <el-menu-item index="/billing/edit">
                       <el-icon><Plus /></el-icon>
                       <span>請求新規</span>
+                    </el-menu-item>
+                  </el-sub-menu>
+
+                  <el-sub-menu index="/finance">
+                    <template #title>
+                      <el-icon><Money /></el-icon>
+                      <span>収支管理</span>
+                    </template>
+                    <el-menu-item index="/finance/list">
+                      <el-icon><Document /></el-icon>
+                      <span>収支一覧</span>
+                    </el-menu-item>
+                    <el-menu-item index="/finance/new">
+                      <el-icon><Plus /></el-icon>
+                      <span>収支新規</span>
                     </el-menu-item>
                   </el-sub-menu>
 
@@ -3440,6 +5565,10 @@
                     <el-menu-item index="/master/vessel">
                       <el-icon><Setting /></el-icon>
                       <span>船名マスタ</span>
+                    </el-menu-item>
+                    <el-menu-item index="/master/invoice-template">
+                      <el-icon><Document /></el-icon>
+                      <span>請求書テンプレート管理</span>
                     </el-menu-item>
                   </el-sub-menu>
 
@@ -3482,7 +5611,8 @@
           Money,
           Setting,
           Document,
-          Plus
+          Plus,
+          Calendar
         };
       }
     };
