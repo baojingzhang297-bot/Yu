@@ -1150,13 +1150,26 @@
               </div>
 
               <div class="search-field">
+                <label class="search-label">取引先名</label>
+                <el-input v-model="filters.clientName" class="compact-input" placeholder="模糊查询"></el-input>
+              </div>
+
+              <div class="search-field">
                 <label class="search-label">ETD</label>
-                <el-date-picker v-model="filters.etd" type="date" placeholder="日付選択" format="YYYY/MM/DD" value-format="YYYY/MM/DD" class="compact-input"></el-date-picker>
+                <div class="compact-date-range">
+                  <el-date-picker v-model="filters.etdFrom" type="date" placeholder="From" format="YYYY/MM/DD" value-format="YYYY/MM/DD"></el-date-picker>
+                  <span class="sep">～</span>
+                  <el-date-picker v-model="filters.etdTo" type="date" placeholder="To" format="YYYY/MM/DD" value-format="YYYY/MM/DD"></el-date-picker>
+                </div>
               </div>
 
               <div class="search-field">
                 <label class="search-label">ETA</label>
-                <el-date-picker v-model="filters.eta" type="date" placeholder="日付選択" format="YYYY/MM/DD" value-format="YYYY/MM/DD" class="compact-input"></el-date-picker>
+                <div class="compact-date-range">
+                  <el-date-picker v-model="filters.etaFrom" type="date" placeholder="From" format="YYYY/MM/DD" value-format="YYYY/MM/DD"></el-date-picker>
+                  <span class="sep">～</span>
+                  <el-date-picker v-model="filters.etaTo" type="date" placeholder="To" format="YYYY/MM/DD" value-format="YYYY/MM/DD"></el-date-picker>
+                </div>
               </div>
 
               <div class="search-field">
@@ -1263,11 +1276,12 @@
                 ></el-checkbox>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="84" fixed="left">
+            <el-table-column label="操作" width="126" fixed="left">
               <template #default="scope">
                 <div class="operation-links">
                   <a class="action-link action-edit" @click.prevent="goEdit(scope.row)">変更</a>
                   <a class="action-link action-copy" @click.prevent="copyCase(scope.row)">コピー</a>
+                  <a class="action-link action-delete" @click.prevent="removeCase(scope.row)">删除</a>
                 </div>
               </template>
             </el-table-column>
@@ -1324,8 +1338,11 @@
         const selectedCaseNo = Vue.ref("");
         const filters = Vue.reactive({
           caseNo: "",
-          etd: "",
-          eta: "",
+          clientName: "",
+          etdFrom: "",
+          etdTo: "",
+          etaFrom: "",
+          etaTo: "",
           docCutDate: "",
           shippingCode: "WHL",
           destination: "",
@@ -1689,6 +1706,9 @@
 
               <div class="bottom-actions">
                 <el-button type="primary" @click="submitForm" :disabled="isClosed">保存</el-button>
+                <el-button type="primary" plain @click="outputCaseDocument('ドレー依頼書')">ドレー依頼書</el-button>
+                <el-button type="primary" plain @click="outputCaseDocument('通関依頼書')">通関依頼書</el-button>
+                <el-button type="primary" plain @click="outputCaseDocument('内容確認書')">内容確認書</el-button>
                 <el-button type="primary" plain @click="goBack">取消</el-button>
                 <el-button v-if="isClosed && isAdmin" type="warning" @click="unlockCase">終了解除</el-button>
               </div>
@@ -1936,6 +1956,9 @@
             }
           });
         };
+        const outputCaseDocument = (docName) => {
+          ElementPlus.ElMessage.success(docName + "を出力しました（Mock）");
+        };
         return {
           formRef,
           businessCollapsed,
@@ -1962,7 +1985,8 @@
           handleOcrFileChange,
           parseOcr,
           confirmOcr,
-          submitForm
+          submitForm,
+          outputCaseDocument
         };
       }
     };
@@ -3227,9 +3251,9 @@
         { no: 3, code: "CASE_STATUS", name: "案件ステータス", type: "案件ステータス", items: [{ no: 1, code: "OPEN", name: "進行中" }, { no: 2, code: "HOLD", name: "保留" }, { no: 3, code: "DONE", name: "完了" }, { no: 4, code: "CLOSED", name: "終了" }] }
       ],
       partners: [
-        { no: 1, code: "TR-1001", name: "日高金属株式会社", category: "顧客", active: true },
-        { no: 2, code: "SP-2201", name: "東京運送株式会社", category: "仕入先", active: true },
-        { no: 3, code: "SL-3101", name: "WAN HAI LINES", category: "船社", active: true }
+        { no: 1, code: "TR-1001", name: "日高金属株式会社", shortName: "日高金属", category: "顧客", active: true },
+        { no: 2, code: "SP-2201", name: "東京運送株式会社", shortName: "東京運送", category: "仕入先", active: true },
+        { no: 3, code: "SL-3101", name: "WAN HAI LINES", shortName: "WHL", category: "船社", active: true }
       ],
       billingTargets: [
         { no: 1, code: "BT-1001", name: "日高金属株式会社 請求先", note: "月末締め" },
@@ -3260,7 +3284,9 @@
           <div class="page-head"><div><h2>取引先管理</h2><p>取引先マスタの登録・変更・状態管理を行います。</p></div></div>
           <div class="finance-search-panel">
             <div class="finance-grid" style="grid-template-columns: repeat(2, minmax(0, 1fr));">
+              <div class="search-field"><label class="search-label">取引先コード</label><el-input v-model="filters.code"></el-input></div>
               <div class="search-field"><label class="search-label">取引先名</label><el-input v-model="filters.name"></el-input></div>
+              <div class="search-field"><label class="search-label">略称</label><el-input v-model="filters.shortName"></el-input></div>
               <div class="search-field"><label class="search-label">区分</label>
                 <el-select v-model="filters.category" clearable placeholder="全て">
                   <el-option label="顧客" value="顧客"></el-option>
@@ -3278,7 +3304,9 @@
           <el-table :data="pagedRows" border class="finance-list-table">
             <el-table-column prop="no" label="No." width="70"></el-table-column>
             <el-table-column label="操作" width="90"><template #default="scope"><a href="#" class="action-link action-edit" @click.prevent="editRow(scope.row)">変更</a></template></el-table-column>
+            <el-table-column prop="code" label="取引先コード" min-width="140"></el-table-column>
             <el-table-column prop="name" label="取引先名" min-width="260"></el-table-column>
+            <el-table-column prop="shortName" label="略称" min-width="140"></el-table-column>
             <el-table-column prop="category" label="区分" width="140"></el-table-column>
             <el-table-column label="ステータス" width="110"><template #default="scope"><el-switch v-model="scope.row.active"></el-switch></template></el-table-column>
           </el-table>
@@ -3296,7 +3324,9 @@
           </div>
           <el-dialog v-model="visible" title="取引先管理" width="520px">
             <el-form label-width="110px">
+              <el-form-item label="取引先コード"><el-input v-model="editing.code" readonly></el-input></el-form-item>
               <el-form-item label="取引先名"><el-input v-model="editing.name"></el-input></el-form-item>
+              <el-form-item label="略称"><el-input v-model="editing.shortName"></el-input></el-form-item>
               <el-form-item label="区分">
                 <el-select v-model="editing.category">
                   <el-option label="顧客" value="顧客"></el-option>
@@ -3313,15 +3343,24 @@
       `,
       setup() {
         const rows = masterStore.partners;
-        const filters = Vue.reactive({ name: "", category: "" });
+        const nextPartnerCode = () => {
+          const maxNo = rows.reduce((max, item) => {
+            const matched = String(item.code || "").match(/(\d+)$/);
+            return Math.max(max, matched ? Number(matched[1]) : 0);
+          }, 1000);
+          return "TR-" + String(maxNo + 1);
+        };
+        const filters = Vue.reactive({ code: "", name: "", shortName: "", category: "" });
         const filteredRows = Vue.computed(() => rows.filter(row =>
+          (!filters.code || (row.code || "").toLowerCase().includes(filters.code.toLowerCase())) &&
           (!filters.name || row.name.toLowerCase().includes(filters.name.toLowerCase())) &&
+          (!filters.shortName || (row.shortName || "").toLowerCase().includes(filters.shortName.toLowerCase())) &&
           (!filters.category || row.category === filters.category)
         ));
         const pagination = useTablePagination(filteredRows);
         const visible = Vue.ref(false);
-        const editing = Vue.reactive({ no: null, code: "", name: "", category: "顧客", active: true });
-        const openNew = () => { Object.assign(editing, { no: null, code: "", name: "", category: "顧客", active: true }); visible.value = true; };
+        const editing = Vue.reactive({ no: null, code: "", name: "", shortName: "", category: "顧客", active: true });
+        const openNew = () => { Object.assign(editing, { no: null, code: nextPartnerCode(), name: "", shortName: "", category: "顧客", active: true }); visible.value = true; };
         const editRow = (row) => { Object.assign(editing, JSON.parse(JSON.stringify(row))); visible.value = true; };
         const save = () => {
           const duplicate = rows.find(item => item.name === editing.name && item.no !== editing.no);
@@ -3333,7 +3372,7 @@
             const index = rows.findIndex(item => item.no === editing.no);
             rows[index] = { ...editing };
           } else {
-            rows.push({ ...editing, no: rows.length + 1 });
+            rows.push({ ...editing, code: editing.code || nextPartnerCode(), no: rows.length + 1 });
           }
           visible.value = false;
         };
@@ -4408,7 +4447,7 @@ const CustomsNewPage = {
                 <el-form-item label="No. of Original B/L">
                   <el-select v-model="blForm.originalBLCount">
                     <el-option label="ONE (1)" value="ONE (1)"></el-option>
-                    <el-option label="ONE (3)" value="ONE (3)"></el-option>
+                    <el-option label="THREE (3)" value="THREE (3)"></el-option>
                   </el-select>
                 </el-form-item>
                 <el-form-item label="備考" class="full-row">
@@ -4592,7 +4631,7 @@ const CustomsNewPage = {
       freightPayableAt: "TOKYO JAPAN",
       placeOfIssue: "TOKYO JAPAN",
       blType: "Surrender",
-      originalBLCount: "ONE (1)",
+      originalBLCount: "THREE (3)",
       remarks: ""
     });
     const invoiceForm = Vue.reactive(emptyInvoiceForm());
@@ -4672,7 +4711,7 @@ const CustomsNewPage = {
         freightPayableAt: "TOKYO JAPAN",
         placeOfIssue: "TOKYO JAPAN",
         blType: "Surrender",
-        originalBLCount: "ONE (1)",
+        originalBLCount: "THREE (3)",
         remarks: ""
       });
     };
@@ -5462,7 +5501,7 @@ const EstimateNewPage = {
             <div class="brand">
               <div class="brand-mark">RX</div>
               <div class="brand-text">
-                <strong>瑞祥通関管理システム</strong>
+                <strong>瑞翔通関管理システム</strong>
                 <span>Case / Finance / Request Administration Console</span>
               </div>
             </div>
